@@ -1,47 +1,59 @@
-# server
+# SmartCampus Backend
 
-This project was created using the [Ktor Project Generator](https://start.ktor.io).
+## Краткое описание
 
-Here are some useful links to get you started:
+SmartCampus Backend — это серверная часть приложения "Умный Кампус", разработанная на Kotlin с
+использованием фреймворка Ktor. Она обеспечивает API для управления пользователями, аутентификации,
+а также (вероятно) для других функций, связанных с деятельностью кампуса (например, расписание,
+новости, сервисы и т.д. - *дополните по необходимости*).
 
-- [Ktor Documentation](https://ktor.io/docs/home.html)
-- [Ktor GitHub page](https://github.com/ktorio/ktor)
-- The [Ktor Slack chat](https://app.slack.com/client/T09229ZC6/C0A974TJ9). You'll need to [request an invite](https://surveys.jetbrains.com/s3/kotlin-slack-sign-up) to join.
+## Статус проекта
 
-## Features
+**В разработке**
 
-Here's a list of features included in this project:
+## Технологический стек
 
-| Name                                                                   | Description                                                                        |
-| ------------------------------------------------------------------------|------------------------------------------------------------------------------------ |
-| [Koin](https://start.ktor.io/p/koin)                                   | Provides dependency injection                                                      |
-| [Routing](https://start.ktor.io/p/routing)                             | Provides a structured routing DSL                                                  |
-| [kotlinx.serialization](https://start.ktor.io/p/kotlinx-serialization) | Handles JSON serialization using kotlinx.serialization library                     |
-| [Content Negotiation](https://start.ktor.io/p/content-negotiation)     | Provides automatic content conversion according to Content-Type and Accept headers |
-| [Exposed](https://start.ktor.io/p/exposed)                             | Adds Exposed database to your application                                          |
-| [Call Logging](https://start.ktor.io/p/call-logging)                   | Logs client requests                                                               |
-| [Status Pages](https://start.ktor.io/p/status-pages)                   | Provides exception handling for routes                                             |
-| [Authentication](https://start.ktor.io/p/auth)                         | Provides extension point for handling the Authorization header                     |
-| [Authentication JWT](https://start.ktor.io/p/auth-jwt)                 | Handles JSON Web Token (JWT) bearer authentication scheme                          |
+* **Язык:** Kotlin
+* **Фреймворк:** Ktor
+* **База данных:** MS SQL Server (через HikariCP и Exposed ORM v1)
+* **Аутентификация:** JWT (JSON Web Tokens) с использованием библиотеки `auth0:java-jwt`
+* **Хеширование паролей:** BCrypt (`org.mindrot:jbcrypt`)
+* **Сериализация:** Kotlinx Serialization
+* **Сборка:** Gradle
+* **Логирование:** SLF4J с (укажите вашу реализацию, например, Logback)
 
-## Building & Running
+## Основные возможности
 
-To build or run the project, use one of the following tasks:
+* Регистрация пользователей.
+* Аутентификация пользователей (логин) с выдачей JWT.
+* Управление сессиями/устройствами для определенных ролей пользователей.
+* (Добавьте другие ключевые функции вашего приложения, например:
+    * API для управления профилями пользователей.
+    * Ролевая модель доступа.
 
-| Task                          | Description                                                          |
-| -------------------------------|---------------------------------------------------------------------- |
-| `./gradlew test`              | Run the tests                                                        |
-| `./gradlew build`             | Build everything                                                     |
-| `buildFatJar`                 | Build an executable JAR of the server with all dependencies included |
-| `buildImage`                  | Build the docker image to use with the fat JAR                       |
-| `publishImageToLocalRegistry` | Publish the docker image locally                                     |
-| `run`                         | Run the server                                                       |
-| `runDocker`                   | Run using the local docker image                                     |
+## Предварительные требования
 
-If the server starts successfully, you'll see the following output:
+* JDK 11 или выше (укажите вашу версию)
+* Установленный и настроенный MS SQL Server.
+* Gradle (обычно используется Gradle Wrapper, включенный в проект).
+* (Любые другие инструменты, например, Docker, если вы его используете для БД или развертывания)
 
-```
-2024-12-04 14:32:45.584 [main] INFO  Application - Application started in 0.303 seconds.
-2024-12-04 14:32:45.682 [main] INFO  Application - Responding at http://0.0.0.0:8080
-```
+## Структура проекта (Краткий обзор)
 
+Проект следует стандартной структуре Gradle-проекта для Kotlin и Ktor приложений. Ключевые директории:
+
+*   `src/main/kotlin`: Исходный код приложения.
+  *   `com/smartcampus/Application.kt`: Точка входа приложения, настройка Ktor.
+  *   `com/smartcampus/plugins/`: Конфигурация плагинов Ktor (Routing, Serialization, Security, Database и т.д.).
+  *   `com/smartcampus/core/`: Основные компоненты, используемые в различных частях приложения.
+    *   `database/`: Настройка подключения к БД (HikariCP, Exposed), базовые репозитории (если есть).
+    *   `security/`: Компоненты для JWT, хеширования паролей.
+    *   `models/`: Общие модели данных (например, `GenericResponse`).
+  *   `com/smartcampus/features/`: Модули, реализующие конкретную функциональность (фичи).
+    *   `auth/`: Функциональность аутентификации (модели, репозиторий, сервис, роуты).
+    *   `[feature_name]/`: Другие фичи вашего приложения.
+*   `src/main/resources`: Ресурсы приложения.
+  *   `application.conf`: Основной конфигурационный файл Ktor.
+  *   `logback.xml` (или аналогичный): Конфигурация логирования.
+*   `src/test/kotlin`: Модульные и интеграционные тесты.
+*   `build.gradle.kts`: Скрипт сборки Gradle.
