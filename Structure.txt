@@ -1,0 +1,85 @@
+SmartCampusServer/
+src/
+├── main/
+    ├── kotlin/
+    │   └── com/
+    │       └── smartcampus/         # Корневой пакет вашего приложения
+    │           ├── Application.kt   # Точка входа, embeddedServer, Application.module()
+    │           │
+    │           ├── plugins/         # Конфигурация плагинов Ktor
+    │           │   ├── Routing.kt   # Основная конфигурация роутинга
+    │           │   ├── Serialization.kt # Настройка (де)сериализации JSON и др.
+    │           │   ├── Security.kt  # Настройка аутентификации (JWT и т.д.)
+    │           │   ├── Database.kt  # Инициализация DatabaseFactory (HikariCP, Exposed)
+    │           │   └── Monitoring.kt# Настройка логирования, метрик (опционально)
+    │           │
+    │           ├── features/        # Основная бизнес-логика, сгруппированная по фичам
+    │           │   │                # (или по предметной области, например, students, schedule)
+    │           │   ├── auth/        # Логика, связанная с аутентификацией и авторизацией
+    │           │   │   ├── AuthRoutes.kt # Роуты для /login, /register и т.д.
+    │           │   │   ├── AuthService.kt # Сервис для бизнес-логики аутентификации
+    │           │   │   ├── AuthModels.kt  # Модели данных (DTO) для аутентификации
+    │           │   │   └── AuthRepository.kt # (Опционально) Репозиторий для доступа к Users, Permissions из БД SmartCampusAuth
+    │           │   │
+    │           │   ├── students/    # Фича "Студенты"
+    │           │   │   ├── StudentRoutes.kt
+    │           │   │   ├── StudentService.kt
+    │           │   │   ├── StudentModels.kt # Data-классы для запросов/ответов API
+    │           │   │   └── StudentRepository.kt
+    │           │   │
+    │           │   ├── teachers/
+    │           │   │   ├── TeacherRoutes.kt
+    │           │   │   ├── TeacherService.kt
+    │           │   │   ├── TeacherModels.kt
+    │           │   │   └── TeacherRepository.kt
+    │           │   │
+    │           │   ├── groups/      # и так далее для других сущностей...
+    │           │   ├── schedule/
+    │           │   ├── grades/
+    │           │   └── ...
+    │           │
+    │           ├── core/            # Общие компоненты, используемые в разных фичах
+    │           │   ├── database/    # Определение таблиц Exposed и DAO
+    │           │   │   ├── base/
+    │           │   │   │   └── DataSourceFactory.kt
+    │           │   │   │
+    │           │   │   ├── smartcampus/ # Таблицы для основной БД SmartCampus
+    │           │   │   │   ├── StudentTables.kt  # StudentsTable, StudentsInfoTable
+    │           │   │   │   ├── TeacherTables.kt
+    │           │   │   │   ├── GroupTables.kt
+    │           │   │   │   └── ... и так далее для всех ваших таблиц SmartCampus
+    │           │   │   │
+    │           │   │   └── auth/        # Таблицы для БД SmartCampusAuth
+    │           │   │       ├── UserAuthTables.kt # DepartmentsTable, UsersTable, PermissionsTable и т.д.
+    │           │   │
+    │           │   ├── security/    # Утилиты для безопасности, например, хэширование паролей, генерация JWT
+    │           │   │   └── TokenManager.kt
+    │           │   │   └── PasswordHasher.kt
+    │           │   │
+    │           │   ├── models/      # Общие модели данных или базовые классы для моделей
+    │           │   │   └── ApiResponse.kt # Например, для стандартизации ответов API
+    │           │   │
+    │           │   └── utils/       # Различные утилиты
+    │           │       └── DateTimeUtils.kt
+    │           │
+    │           └── di/              # Конфигурация Dependency Injection (например, Koin)
+    │               └── KoinModules.kt # Определения модулей Koin
+    │
+    │── resources/
+    │   ├── application.conf         # <-- ВАШ ОСНОВНОЙ КОНФИГУРАЦИОННЫЙ ФАЙЛ
+    │   ├── logback.xml              # Конфигурация логирования Logback
+    │   └── (другие ресурсы, если нужны, например, шаблоны HTML, статические файлы)
+    └── test/
+      ├── kotlin/
+      │   └── com/
+      │       └── smartcampus/
+      │           ├── ApplicationTest.kt # Базовые тесты для проверки запуска приложения и основных роутов
+      │           └── features/
+      │               ├── auth/
+      │               │   └── AuthRoutesTest.kt
+      │               └── students/
+      │                   └── StudentRoutesTest.kt
+      │                   └── StudentServiceTest.kt
+      │
+      └── resources/
+          └── application-test.conf    # Конфигурация для тестов (например, с тестовой БД)
