@@ -3,14 +3,35 @@ package com.smartcampus.plugins
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.smartcampus.core.security.JwtConfig
-import com.smartcampus.core.security.TokenUtils
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
+import io.ktor.server.application.Application
+import io.ktor.server.application.log
+import io.ktor.server.auth.authentication
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.response.respond
 import org.koin.ktor.ext.inject
 
+/**
+ * Расширение для [Application] для настройки механизмов безопасности, в частности JWT аутентификации.
+ *
+ * Устанавливает и конфигурирует провайдер аутентификации JWT с именем "auth-jwt":
+ * 1. Внедряет [JwtConfig] с помощью Koin для получения параметров JWT (секрет, издатель, аудитория, реалм).
+ * 2. Устанавливает `realm` для JWT аутентификации.
+ * 3. Конфигурирует `verifier` для проверки подписи и стандартных клеймов JWT:
+ *    - Использует алгоритм HMAC256 с секретом из [JwtConfig].
+ *    - Проверяет `audience` и `issuer` токена.
+ * 4. Определяет логику `validate` для проверки кастомных клеймов в JWT:
+ *    - Убеждается, что в токене присутствуют и корректны клеймы `userId` (как Int)
+ *      и `username` (как непустая String).
+ *    - В случае успеха валидации, возвращает [JWTPrincipal], содержащий полезную нагрузку токена.
+ *    - В случае неудачи валидации, возвращает `null`, что приводит к отказу в аутентификации.
+ * 5. Определяет `challenge` блок, который выполняется, когда аутентификация не удалась
+ *    (например, токен не предоставлен, невалиден или просрочен).
+ *    - Отправляет ответ с HTTP статусом 401 Unauthorized и сообщением.
+ *
+ * @receiver [Application] Экземпляр Ktor приложения.
+ */
 fun Application.configureSecurity() {
     val jwtConfig by inject<JwtConfig>()
 
@@ -30,18 +51,6 @@ fun Application.configureSecurity() {
                 if (credential.payload.getClaim("userId").asInt() != null &&
                     credential.payload.getClaim("username").asString().isNotEmpty()
                 ) {
-                    // !!! ВАЖНО: блок validate не является suspend функцией.
-                    // Вызов suspend функции userService.findUserById() напрямую здесь не получится.
-                    // Варианты:
-                    // 1. Сделать userService.findUserById не suspend (если это возможно без блокировки)
-                    // 2. Использовать runBlocking - НЕ РЕКОМЕНДУЕТСЯ в validate из-за производительности.
-                    // 3. Более простой подход для начала: доверять клеймам в токене, если они не критичны для безопасности на этом этапе.
-                    //    Детальные проверки (активен ли юзер, его права) можно делать уже ВНУТРИ защищенных роутов.
-                    // 4. Если очень нужна проверка в validate: можно сделать отдельный, НЕ suspend метод
-                    //    в UserService, который выполняет быструю проверку (например, по кэшу или очень простому запросу).
-
-                    // Для начала, давайте просто проверим наличие userId и username, как было.
-                    // Дополнительную проверку активности можно добавить позже или делать в роутах.
                     JWTPrincipal(credential.payload)
                 } else {
                     null
