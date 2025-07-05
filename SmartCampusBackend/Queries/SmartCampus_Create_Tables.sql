@@ -73,7 +73,7 @@ CREATE TABLE Students (
     name NVARCHAR(255),
     lastname NVARCHAR(255),
     birthday DATE,
-    group_id INT, -- Оставляем NULLABLE, как в оригинале
+    group_id INT,
     email NVARCHAR(255),
     phone_number NVARCHAR(50),
     photo VARBINARY(MAX),
