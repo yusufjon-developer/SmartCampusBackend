@@ -14,5 +14,4 @@ val coreModule = module {
     single { DataSourceFactory }
     single { SmartCampusAuthDb }
     single { SmartCampusDb }
-
 }
