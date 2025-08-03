@@ -1,6 +1,6 @@
 package com.smartcampus.di
 
-import com.smartcampus.core.security.JwtConfig
+import com.smartcampus.domain.security.models.JwtConfig
 import io.ktor.server.application.ApplicationEnvironment
 import org.koin.dsl.module
 

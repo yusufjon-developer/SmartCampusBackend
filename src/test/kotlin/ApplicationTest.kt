@@ -1,8 +1,9 @@
 package com.smartcampus
 
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.server.testing.*
+import com.smartcampus.app.module
+import io.ktor.client.request.get
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.testing.testApplication
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
