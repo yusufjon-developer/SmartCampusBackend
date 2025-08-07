@@ -1,59 +1,102 @@
-# SmartCampus Backend
+# 🧾 SmartCampus Backend – Startup Guide
 
-## Краткое описание
+## 📦 Requirements
+- **Java 17+**
+- **SQL Server** (Express or other)
+- **Gradle** (or use `gradlew.bat`)
+- **Windows OS**
+- Administrator rights for database restoration
 
-SmartCampus Backend — это серверная часть приложения "Умный Кампус", разработанная на Kotlin с
-использованием фреймворка Ktor. Она обеспечивает API для управления пользователями, аутентификации,
-а также (вероятно) для других функций, связанных с деятельностью кампуса (например, расписание,
-новости, сервисы и т.д. - *дополните по необходимости*).
+---
 
-## Статус проекта
+## ⚙️ Startup Steps
 
-**В разработке**
+### 1. 🔄 Restore Databases
 
-## Технологический стек
+Open the terminal **as administrator**, then run:
 
-* **Язык:** Kotlin
-* **Фреймворк:** Ktor
-* **База данных:** MS SQL Server (через HikariCP и Exposed ORM v1)
-* **Аутентификация:** JWT (JSON Web Tokens) с использованием библиотеки `auth0:java-jwt`
-* **Хеширование паролей:** BCrypt (`org.mindrot:jbcrypt`)
-* **Сериализация:** Kotlinx Serialization
-* **Сборка:** Gradle
-* **Логирование:** SLF4J с (укажите вашу реализацию, например, Logback)
+```bash
+databases_restore.bat
+```
 
-## Основные возможности
+Follow the prompts:
+- Enter the SQL instance name (e.g., `.\SQLEXPRESS`)
+- Enter the username (default: `sa`)
+- Enter the password for `sa`
 
-* Регистрация пользователей.
-* Аутентификация пользователей (логин) с выдачей JWT.
-* Управление сессиями/устройствами для определенных ролей пользователей.
-* (Добавьте другие ключевые функции вашего приложения, например:
-    * API для управления профилями пользователей.
-    * Ролевая модель доступа.
+Two databases will be restored:
+- `SmartCampus`
+- `SmartCampusAuth`
 
-## Предварительные требования
+> ⚠️ Make sure the files `SmartCampus.bak` and `SmartCampusAuth.bak` are located in the folder `SmartCampusBackend\DbBackUp`
 
-* JDK 11 или выше (укажите вашу версию)
-* Установленный и настроенный MS SQL Server.
-* Gradle (обычно используется Gradle Wrapper, включенный в проект).
-* (Любые другие инструменты, например, Docker, если вы его используете для БД или развертывания)
+---
 
-## Структура проекта (Краткий обзор)
+### 2. 🛠️ Build the Server
 
-Проект следует стандартной структуре Gradle-проекта для Kotlin и Ktor приложений. Ключевые директории:
+After successful database restoration, execute:
 
-*   `src/main/kotlin`: Исходный код приложения.
-  *   `com/smartcampus/Application.kt`: Точка входа приложения, настройка Ktor.
-  *   `com/smartcampus/plugins/`: Конфигурация плагинов Ktor (Routing, Serialization, Security, Database и т.д.).
-  *   `com/smartcampus/core/`: Основные компоненты, используемые в различных частях приложения.
-    *   `database/`: Настройка подключения к БД (HikariCP, Exposed), базовые репозитории (если есть).
-    *   `security/`: Компоненты для JWT, хеширования паролей.
-    *   `models/`: Общие модели данных (например, `GenericResponse`).
-  *   `com/smartcampus/features/`: Модули, реализующие конкретную функциональность (фичи).
-    *   `auth/`: Функциональность аутентификации (модели, репозиторий, сервис, роуты).
-    *   `[feature_name]/`: Другие фичи вашего приложения.
-*   `src/main/resources`: Ресурсы приложения.
-  *   `application.conf`: Основной конфигурационный файл Ktor.
-  *   `logback.xml` (или аналогичный): Конфигурация логирования.
-*   `src/test/kotlin`: Модульные и интеграционные тесты.
-*   `build.gradle.kts`: Скрипт сборки Gradle.
+```bash
+gradlew.bat build
+```
+
+or, if Gradle is installed globally:
+
+```bash
+gradle build
+```
+
+---
+
+### 3. 🚀 Start the Server
+
+To start, use:
+
+```bash
+start_server_release.bat
+```
+
+You will be asked to provide:
+- `JWT_SECRET`
+- `DB_PASSWORD` — same as the `sa` user password
+
+**Example values for testing:**
+
+```env
+JWT_SECRET=B&ERaiVz[n+x7_xWE#K82AOzuTh&{vh6
+DB_PASSWORD=<sa user password>
+```
+
+---
+
+## 📁 Project Structure
+
+```
+/
+├── databases_restore.bat
+├── start_server_release.bat
+├── build/libs/server-all.jar
+├── SmartCampusBackend/
+│   └── DbBackUp/
+│       ├── SmartCampus.bak
+│       └── SmartCampusAuth.bak
+├── gradlew.bat
+└── README.md
+```
+
+---
+
+## 📌 Notes
+
+- Environment variables work only within the current `cmd` window.
+- To automate startup, you can use `.env` files or `setx` (use with caution).
+- Ensure that SQL Server ports and Ktor server ports are free and not blocked.
+
+---
+
+## ❓ Support
+
+Having issues?
+- Check that you run `sqlcmd` with administrator rights
+- Make sure `server-all.jar` is built and located in `build/libs`
+- Ensure the SQL instance is accessible and port `1433` is free
