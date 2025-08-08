@@ -2,6 +2,8 @@ package com.smartcampus.app.plugins
 
 import com.smartcampus.features.auth.AuthService
 import com.smartcampus.features.auth.authRoutes
+import com.smartcampus.features.systemAdmin.SystemAdminService
+import com.smartcampus.features.systemAdmin.systemAdminRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.application.log
 import io.ktor.server.auth.authenticate
@@ -29,6 +31,7 @@ import org.koin.ktor.ext.inject
 fun Application.configureRouting() {
 
     val authService by inject<AuthService>()
+    val systemAdminService by inject<SystemAdminService>()
 
     // TODO: Инжектируйте или получите экземпляр вашего UserService
     // val userService = get<UserService>() // Если используете Koin
@@ -40,6 +43,7 @@ fun Application.configureRouting() {
         }
 
         authRoutes(authService)
+        systemAdminRoutes(systemAdminService)
 
         authenticate("auth-jwt") {
             route("/me") {

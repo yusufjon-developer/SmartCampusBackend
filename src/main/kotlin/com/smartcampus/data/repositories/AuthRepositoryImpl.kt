@@ -15,7 +15,6 @@ import com.smartcampus.domain.models.student.StudentSignUpResponse
 import com.smartcampus.domain.repositories.AuthRepository
 import com.smartcampus.domain.security.PasswordHasher
 import com.smartcampus.domain.security.TokenUtils
-import io.ktor.server.util.toLocalDateTime
 import io.ktor.utils.io.InternalAPI
 import java.time.LocalDateTime
 
@@ -44,10 +43,12 @@ class AuthRepositoryImpl(
 
         val userId = userRow[UsersTable.id].value
 
-        val (token, _) = tokenUtils.generateToken(
+        val userRoles = listOf(roleName)
+
+        val token = tokenUtils.generateToken(
             userId = userId,
             username = userRow[UsersTable.username],
-            roleId = userRow[RolesTable.id].value
+            roles = userRoles
         )
         return StudentSignInResponse(token)
     }
@@ -70,6 +71,7 @@ class AuthRepositoryImpl(
         }
 
         val userId = userRow[UsersTable.id].value
+        val userRoles = listOf(roleName)
         val userDeviceRow = authDao.findUserDevice(userId, request.uuid)
 
         val currentTime = LocalDateTime.now()
@@ -91,10 +93,10 @@ class AuthRepositoryImpl(
 
         authDao.updateUserDeviceLastLogin(userDeviceRow[UserDevicesTable.id].value, currentTime)
 
-        val (token, _) = tokenUtils.generateToken(
+        val token = tokenUtils.generateToken(
             userId = userId,
             username = userRow[UsersTable.username],
-            roleId = userRow[RolesTable.id].value,
+            roles = userRoles,
             deviceUuid = request.uuid
         )
         return EmployeeSignInResponse(token)
@@ -126,17 +128,9 @@ class AuthRepositoryImpl(
             createdAt = currentTime
         )
 
-        val (token, expiresAt) = tokenUtils.generateToken(
-            userId = newUserId,
-            username = request.username,
-            roleId = studentRoleId
-        )
-
         return StudentSignUpResponse(
             userId = newUserId,
-            message = "Student account created successfully.",
-            token = token,
-            expiresAt = expiresAt.toLocalDateTime()
+            message = "Student account created successfully."
         )
     }
 

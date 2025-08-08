@@ -12,22 +12,22 @@ class TokenUtils(private val config: JwtConfig) {
     fun generateToken(
         userId: Int,
         username: String,
-        roleId: Int,
+        roles: List<String>,
         deviceUuid: String? = null
-    ): Pair<String, Date> {
+    ): String {
         val expirationDate = Date(System.currentTimeMillis() + config.validityInMs)
         val tokenBuilder = JWT.create()
             .withAudience(config.audience)
             .withIssuer(config.issuer)
             .withClaim("userId", userId)
             .withClaim("username", username)
-            .withClaim("role", roleId)
+            .withClaim("roles", roles)
             .withExpiresAt(expirationDate)
 
         if (deviceUuid != null) {
             tokenBuilder.withClaim("deviceUuid", deviceUuid)
         }
 
-        return tokenBuilder.sign(algorithm) to expirationDate
+        return tokenBuilder.sign(algorithm)
     }
 }

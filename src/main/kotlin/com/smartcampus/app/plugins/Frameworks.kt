@@ -3,6 +3,7 @@ package com.smartcampus.app.plugins
 import com.smartcampus.di.appModule
 import com.smartcampus.di.coreModule
 import com.smartcampus.di.featuresModule.authModule
+import com.smartcampus.di.featuresModule.systemAdminModule
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import org.koin.ktor.plugin.Koin
@@ -29,6 +30,7 @@ fun Application.configureFrameworks() {
                 appModule(this@configureFrameworks.environment),
                 authModule,
                 coreModule,
+                systemAdminModule,
             )
         )
 

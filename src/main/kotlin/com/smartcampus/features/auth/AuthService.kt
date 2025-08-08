@@ -10,22 +10,24 @@ import com.smartcampus.domain.models.student.StudentSignUpRequest
 import com.smartcampus.domain.models.student.StudentSignUpResponse
 import com.smartcampus.domain.repositories.AuthRepository
 
-class AuthService(private val authRepository: AuthRepository) {
+class AuthService(
+    private val repository: AuthRepository
+) {
 
     suspend fun signInStudent(request: StudentSignInRequest): StudentSignInResponse {
-        return authRepository.signInStudent(request)
+        return repository.signInStudent(request)
     }
 
     suspend fun signInEmployee(request: EmployeeSignInRequest): EmployeeSignInResponse {
-        return authRepository.signInEmployee(request)
+        return repository.signInEmployee(request)
     }
 
 
     suspend fun signUpStudent(request: StudentSignUpRequest): StudentSignUpResponse {
-        return authRepository.signUpStudent(request)
+        return repository.signUpStudent(request)
     }
 
     suspend fun signUpEmployee(request: EmployeeSignUpRequest): EmployeeSignUpResponse {
-        return authRepository.signUpEmployee(request)
+        return repository.signUpEmployee(request)
     }
 }
