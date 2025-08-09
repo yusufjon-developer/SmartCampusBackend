@@ -1,5 +1,7 @@
 package com.smartcampus.features.systemAdmin
 
+import com.smartcampus.domain.models.common.PageRequestParams
+import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
@@ -14,9 +16,9 @@ class SystemAdminService(
     private val log = LoggerFactory.getLogger(SystemAdminService::class.java)
 
     // --- Roles ---
-    suspend fun getAllRoles(): List<RoleResponse> {
-        log.debug("Service: Fetching all roles.")
-        return repository.getRoles()
+    suspend fun getAllRoles(params: PageRequestParams): PaginatedResult<RoleResponse> {
+        log.info("Service: Fetching roles with params: $params")
+        return repository.getRoles(params)
     }
 
     suspend fun getRoleWithPermissions(roleId: Int): Pair<RoleResponse, List<PermissionResponse>> {
@@ -45,9 +47,9 @@ class SystemAdminService(
     }
 
     // --- Permissions ---
-    suspend fun getAllPermissions(): List<PermissionResponse> {
-        log.debug("Service: Fetching all permissions.")
-        return repository.getPermissions()
+    suspend fun getAllPermissions(params: PageRequestParams): PaginatedResult<PermissionResponse> {
+        log.info("Service: Fetching permissions with params: $params")
+        return repository.getPermissions(params)
     }
 
     suspend fun getPermission(permissionId: Int): PermissionResponse {

@@ -2,6 +2,7 @@ package com.smartcampus.features.systemAdmin
 
 import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
+import com.smartcampus.features.common.getPageRequestParams
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.log
@@ -77,7 +78,8 @@ fun Route.systemAdminRoutes(service: SystemAdminService) {
             // --- Roles Endpoints ---
             get("/roles") {
                 try {
-                    val roles = service.getAllRoles()
+                    val params = call.getPageRequestParams()
+                    val roles = service.getAllRoles(params)
                     call.respond(HttpStatusCode.OK, roles)
                 } catch (e: Exception) {
                     call.handleAdminError(e, "get roles")
@@ -125,7 +127,8 @@ fun Route.systemAdminRoutes(service: SystemAdminService) {
             // --- Permissions Endpoints ---
             get("/permissions") {
                 try {
-                    val permissions = service.getAllPermissions()
+                    val params = call.getPageRequestParams()
+                    val permissions = service.getAllPermissions(params)
                     call.respond(HttpStatusCode.OK, permissions)
                 } catch (e: Exception) {
                     call.handleAdminError(e, "get permissions")

@@ -1,29 +1,45 @@
 package com.smartcampus.data.repositories
 
 import com.smartcampus.data.database.auth.dao.SystemAdminDao
+import com.smartcampus.domain.models.common.PageRequestParams
+import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
 import com.smartcampus.domain.repositories.SystemAdminRepository
 import org.slf4j.LoggerFactory
+import kotlin.math.ceil
 
 class SystemAdminRepositoryImpl(
     private val dao: SystemAdminDao
 ) : SystemAdminRepository {
     private val log = LoggerFactory.getLogger(SystemAdminRepositoryImpl::class.java)
 
-    override suspend fun getRoles(): List<RoleResponse> {
-        log.debug("Fetching all roles")
-        return dao.getAllRoles()
+    override suspend fun getRoles(params: PageRequestParams): PaginatedResult<RoleResponse> {
+        log.info("Fetching roles with params: $params")
+        val items = dao.getAllRoles(params)
+        val totalItems = dao.countAllRoles()
+        val totalPages = if (totalItems == 0L || params.limit <= 0) 0 else ceil(totalItems.toDouble() / params.limit).toInt()
+
+        return PaginatedResult(
+            items = items,
+            totalItems = totalItems,
+            totalPages = totalPages,
+            currentPage = params.page,
+            pageSize = params.limit,
+            sortBy = params.sortBy
+        )
     }
 
+
+
     override suspend fun getRoleById(id: Int): Pair<RoleResponse, List<PermissionResponse>>? {
-        log.debug("Fetching role by id: $id")
+        log.info("Fetching role by id: $id")
         val role = dao.getRoleById(id)
         return if (role != null) {
             val permissions = dao.getPermissionsForRole(id)
-            log.debug("Found role: ${role.name} with ${permissions.size} permissions")
+            log.info("Found role: ${role.name} with ${permissions.size} permissions")
             Pair(role, permissions)
         } else {
             log.warn("Role with id $id not found")
@@ -41,13 +57,24 @@ class SystemAdminRepositoryImpl(
         return dao.deleteRole(id)
     }
 
-    override suspend fun getPermissions(): List<PermissionResponse> {
-        log.debug("Fetching all permissions")
-        return dao.getAllPermissions()
+    override suspend fun getPermissions(params: PageRequestParams): PaginatedResult<PermissionResponse> {
+        log.info("Fetching permissions with params: $params")
+        val items = dao.getAllPermissions(params)
+        val totalItems = dao.countAllPermissions()
+        val totalPages = if (totalItems == 0L || params.limit <= 0) 0 else ceil(totalItems.toDouble() / params.limit).toInt()
+
+        return PaginatedResult(
+            items = items,
+            totalItems = totalItems,
+            totalPages = totalPages,
+            currentPage = params.page,
+            pageSize = params.limit,
+            sortBy = params.sortBy
+        )
     }
 
     override suspend fun getPermissionsById(id: Int): PermissionResponse? {
-        log.debug("Fetching permission by id: $id")
+        log.info("Fetching permission by id: $id")
         val permission = dao.getPermissionById(id)
         if (permission == null) {
             log.warn("Permission with id $id not found")

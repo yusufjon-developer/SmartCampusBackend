@@ -7,24 +7,64 @@ import com.smartcampus.data.database.auth.entities.RolePermissionsTable
 import com.smartcampus.data.database.auth.entities.RolesTable
 import com.smartcampus.data.utils.toPermissionResponse
 import com.smartcampus.data.utils.toRoleResponse
+import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
+import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.statements.api.ExposedBlob
+import org.jetbrains.exposed.v1.jdbc.Query
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
+import kotlin.text.lowercase
 
 class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
 
-    suspend fun getAllRoles(): List<RoleResponse> = authDb.query {
-        RolesTable.selectAll().map { it.toRoleResponse() }
+    object SortableFields {
+        val ROLES: Map<String, Column<*>> = mapOf(
+            "id" to RolesTable.id,
+            "name" to RolesTable.name,
+            "description" to RolesTable.description
+        )
+        val PERMISSIONS: Map<String, Column<*>> = mapOf(
+            "id" to PermissionsTable.id,
+            "name" to PermissionsTable.name,
+            "description" to PermissionsTable.description
+        )
+    }
+
+    private fun Query.applyPaginationAndSorting(
+        params: PageRequestParams,
+        sortableFields: Map<String, Column<*>>,
+        defaultSortColumn: Column<*>
+    ): Query {
+        val sortField = params.sortBy?.lowercase()
+        val columnToSort = sortableFields[sortField] ?: defaultSortColumn
+        this.orderBy(columnToSort to SortOrder.ASC)
+
+        this.offset(params.offset)
+        this.limit(params.limit)
+        return this
+    }
+
+
+    suspend fun getAllRoles(params: PageRequestParams): List<RoleResponse> = authDb.query {
+        RolesTable
+            .selectAll()
+            .applyPaginationAndSorting(params, SortableFields.ROLES, RolesTable.name)
+            .map { it.toRoleResponse() }
+    }
+
+    suspend fun countAllRoles(): Long = authDb.query {
+        RolesTable.selectAll().count()
     }
 
     suspend fun getRoleById(id: Int): RoleResponse? = authDb.query {
@@ -59,8 +99,15 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
         RolesTable.deleteWhere { RolesTable.id eq roleId } > 0
     }
 
-    suspend fun getAllPermissions(): List<PermissionResponse> = authDb.query {
-        PermissionsTable.selectAll().map { it.toPermissionResponse() }
+    suspend fun getAllPermissions(params: PageRequestParams): List<PermissionResponse> = authDb.query {
+        PermissionsTable
+            .selectAll()
+            .applyPaginationAndSorting(params, SortableFields.PERMISSIONS, PermissionsTable.name)
+            .map { it.toPermissionResponse() }
+    }
+
+    suspend fun countAllPermissions(): Long = authDb.query {
+        PermissionsTable.selectAll().count()
     }
 
     suspend fun getPermissionById(id: Int): PermissionResponse? = authDb.query {
