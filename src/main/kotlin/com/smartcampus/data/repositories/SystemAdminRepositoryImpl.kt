@@ -7,6 +7,7 @@ import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
+import com.smartcampus.domain.models.systemAdmin.RoleWithPermissionsResponse
 import com.smartcampus.domain.repositories.SystemAdminRepository
 import org.slf4j.LoggerFactory
 import kotlin.math.ceil
@@ -34,13 +35,13 @@ class SystemAdminRepositoryImpl(
 
 
 
-    override suspend fun getRoleById(id: Int): Pair<RoleResponse, List<PermissionResponse>>? {
+    override suspend fun getRoleById(id: Int): RoleWithPermissionsResponse? {
         log.info("Fetching role by id: $id")
         val role = dao.getRoleById(id)
         return if (role != null) {
             val permissions = dao.getPermissionsForRole(id)
             log.info("Found role: ${role.name} with ${permissions.size} permissions")
-            Pair(role, permissions)
+            RoleWithPermissionsResponse(role, permissions)
         } else {
             log.warn("Role with id $id not found")
             null

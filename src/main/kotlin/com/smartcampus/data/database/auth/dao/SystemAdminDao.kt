@@ -13,6 +13,7 @@ import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
 import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.alias
@@ -24,7 +25,6 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
-import kotlin.text.lowercase
 
 class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
 
@@ -74,14 +74,19 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
     suspend fun getPermissionsForRole(roleId: Int): List<PermissionResponse> =
         authDb.query {
             val p = PermissionsTable.alias("p")
-            (RolePermissionsTable innerJoin p)
-                .selectAll()
-                .where { RolePermissionsTable.roleId eq roleId }
-                .map {
+            RolePermissionsTable
+                .join(
+                    otherTable = p,
+                    joinType = JoinType.INNER,
+                    onColumn = RolePermissionsTable.permissionId,
+                    otherColumn = p[PermissionsTable.id]
+                )
+                .selectAll().where { RolePermissionsTable.roleId eq roleId }
+                .map { resultRow ->
                     PermissionResponse(
-                        id = it[p[PermissionsTable.id]].value,
-                        name = it[p[PermissionsTable.name]],
-                        description = it[p[PermissionsTable.description]]
+                        id = resultRow[p[PermissionsTable.id]].value,
+                        name = resultRow[p[PermissionsTable.name]],
+                        description = resultRow[p[PermissionsTable.description]]
                     )
                 }
         }
@@ -99,19 +104,25 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
         RolesTable.deleteWhere { RolesTable.id eq roleId } > 0
     }
 
-    suspend fun getAllPermissions(params: PageRequestParams): List<PermissionResponse> = authDb.query {
-        PermissionsTable
-            .selectAll()
-            .applyPaginationAndSorting(params, SortableFields.PERMISSIONS, PermissionsTable.name)
-            .map { it.toPermissionResponse() }
-    }
+    suspend fun getAllPermissions(params: PageRequestParams): List<PermissionResponse> =
+        authDb.query {
+            PermissionsTable
+                .selectAll()
+                .applyPaginationAndSorting(
+                    params,
+                    SortableFields.PERMISSIONS,
+                    PermissionsTable.name
+                )
+                .map { it.toPermissionResponse() }
+        }
 
     suspend fun countAllPermissions(): Long = authDb.query {
         PermissionsTable.selectAll().count()
     }
 
     suspend fun getPermissionById(id: Int): PermissionResponse? = authDb.query {
-        PermissionsTable.selectAll().where { PermissionsTable.id eq id }.singleOrNull()?.toPermissionResponse()
+        PermissionsTable.selectAll().where { PermissionsTable.id eq id }.singleOrNull()
+            ?.toPermissionResponse()
     }
 
     suspend fun createPermission(permissionRequest: PermissionRequest): PermissionResponse =

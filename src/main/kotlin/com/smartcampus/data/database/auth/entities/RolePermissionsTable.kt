@@ -1,12 +1,19 @@
 package com.smartcampus.data.database.auth.entities
 
-import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
+import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.Table
 
-object RolePermissionsTable : IntIdTable("Role_Permissions") {
-    val roleId = reference("role_id", RolesTable)
-    val permissionId = reference("permission_id", PermissionsTable)
+object RolePermissionsTable : Table("Role_Permissions") {
+    val roleId = reference("role_id", RolesTable.id, onDelete = ReferenceOption.CASCADE)
+    val permissionId =
+        reference("permission_id", PermissionsTable.id, onDelete = ReferenceOption.CASCADE)
+
+    override val primaryKey =
+        PrimaryKey(roleId, permissionId, name = "PK_RolePermissions_Composite")
 
     init {
-        uniqueIndex("PK_RolePermissions", roleId, permissionId)
+        uniqueIndex(
+            "UQ_RolePermissions_Backup", roleId, permissionId
+        )
     }
 }

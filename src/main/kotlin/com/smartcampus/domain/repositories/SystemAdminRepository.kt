@@ -6,10 +6,11 @@ import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
+import com.smartcampus.domain.models.systemAdmin.RoleWithPermissionsResponse
 
 interface SystemAdminRepository {
     suspend fun getRoles(params: PageRequestParams): PaginatedResult<RoleResponse>
-    suspend fun getRoleById(id: Int): Pair<RoleResponse, List<PermissionResponse>>?
+    suspend fun getRoleById(id: Int): RoleWithPermissionsResponse?
     suspend fun createRole(role: RoleRequest): RoleResponse
     suspend fun deleteRoleById(id: Int): Boolean
 

@@ -6,6 +6,7 @@ import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
+import com.smartcampus.domain.models.systemAdmin.RoleWithPermissionsResponse
 import com.smartcampus.domain.repositories.SystemAdminRepository
 import io.ktor.server.auth.jwt.JWTPrincipal
 import org.slf4j.LoggerFactory
@@ -21,7 +22,7 @@ class SystemAdminService(
         return repository.getRoles(params)
     }
 
-    suspend fun getRoleWithPermissions(roleId: Int): Pair<RoleResponse, List<PermissionResponse>> {
+    suspend fun getRoleWithPermissions(roleId: Int): RoleWithPermissionsResponse {
         log.debug("Service: Fetching role $roleId with permissions.")
         return repository.getRoleById(roleId)
             ?: throw NoSuchElementException("Role with id $roleId not found.")
