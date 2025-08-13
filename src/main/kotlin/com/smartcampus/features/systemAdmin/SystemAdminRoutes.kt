@@ -2,6 +2,7 @@ package com.smartcampus.features.systemAdmin
 
 import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
+import com.smartcampus.domain.models.systemAdmin.UpdateUserPermissionsRequest
 import com.smartcampus.features.common.getPageRequestParams
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -201,6 +202,43 @@ fun Route.systemAdminRoutes(service: SystemAdminService) {
                     call.respond(HttpStatusCode.NoContent)
                 } catch (e: Exception) {
                     call.handleAdminError(e, "revoke permission from role")
+                }
+            }
+
+            get("/users/{userId}/permissions") {
+                val targetUserId = call.parameters["userId"]?.toIntOrNull()
+                if (targetUserId == null) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid target User ID format."))
+                    return@get
+                }
+                try {
+                    val userPermissions = service.getUserPermissionsDetails(targetUserId)
+                    call.respond(HttpStatusCode.OK, userPermissions)
+                } catch (e: Exception) {
+                    call.handleAdminError(e, "get user permissions details for user $targetUserId")
+                }
+            }
+
+            post("/users/{userId}/permissions") {
+                val targetUserId = call.parameters["userId"]?.toIntOrNull()
+                val principal = call.principal<JWTPrincipal>()
+
+                if (targetUserId == null) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid target User ID format."))
+                    return@post
+                }
+                if (principal == null) {
+                    application.log.error("CRITICAL: Principal is null within auth-jwt-admin block for POST /users/{userId}/permissions.")
+                    call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Internal authentication error: Principal not found."))
+                    return@post
+                }
+
+                try {
+                    val request = call.receive<UpdateUserPermissionsRequest>()
+                    service.updateUserIndividualPermissions(targetUserId, request, principal)
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "User's individual permissions update process initiated successfully."))
+                } catch (e: Exception) {
+                    call.handleAdminError(e, "update user individual permissions for user $targetUserId")
                 }
             }
 

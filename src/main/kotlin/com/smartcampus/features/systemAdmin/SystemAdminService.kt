@@ -7,6 +7,8 @@ import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
 import com.smartcampus.domain.models.systemAdmin.RoleWithPermissionsResponse
+import com.smartcampus.domain.models.systemAdmin.UpdateUserPermissionsRequest
+import com.smartcampus.domain.models.systemAdmin.UserPermissionDetailsDto
 import com.smartcampus.domain.repositories.SystemAdminRepository
 import io.ktor.server.auth.jwt.JWTPrincipal
 import org.slf4j.LoggerFactory
@@ -96,7 +98,7 @@ class SystemAdminService(
             // либо возникла другая проблема, не связанная с отсутствием роли/разрешения (они проверены).
             // Для большей точности, метод репозитория assignPermissionToRole мог бы возвращать
             // enum или код результата (CREATED, ALREADY_EXISTS, FAILED_OTHER).
-            // В текущей реализации с boolean:
+            // AccessControlService текущей реализации с boolean:
             log.warn("repository.assignPermissionToRole returned false for role $roleId, permission $permissionId. This might indicate the link already exists or an issue if the DB doesn't handle duplicates gracefully.")
             // Можно не кидать исключение, если "уже существует" - это не ошибка для вас.
             // Если же вы хотите, чтобы метод был строгим и падал, если связь уже есть:
@@ -117,6 +119,38 @@ class SystemAdminService(
             throw IllegalStateException("Failed to create the link between role $roleId and permission $permissionId. The link might already exist or another issue occurred.")
         }
         log.info("Successfully assigned permission $permissionId to role $roleId.")
+    }
+
+    suspend fun getUserPermissionsDetails(userId: Int): UserPermissionDetailsDto {
+        log.debug("Service: Fetching permission details for user $userId.")
+        return repository.getUserPermissionsDetails(userId)
+            ?: throw NoSuchElementException("User with ID $userId not found or details could not be retrieved.")
+    }
+
+    suspend fun updateUserIndividualPermissions(targetUserId: Int, request: UpdateUserPermissionsRequest, performingAdminPrincipal: JWTPrincipal) {
+        val performingAdminId = performingAdminPrincipal.payload.getClaim("userId").asInt()
+            ?: throw IllegalStateException("Performing admin User ID not found in JWT principal.")
+        val performingAdminUsername = performingAdminPrincipal.payload.getClaim("username").asString()
+            ?: "UnknownAdmin"
+
+        log.info("Service: Admin '$performingAdminUsername' (ID: $performingAdminId) is attempting to update individual permissions for user ID: $targetUserId. Request: $request")
+
+        if (targetUserId == performingAdminId) {
+            // Предосторожность: админ пытается отозвать права у самого себя.
+            // Можно добавить более сложную логику, если есть критичные "само-админские" права.
+            log.warn("Service: Admin '$performingAdminUsername' is attempting to modify their own individual permissions. Proceeding with caution.")
+        }
+
+        // Дополнительные бизнес-проверки можно добавить здесь, если необходимо
+        // Например, не позволять отзывать определенные базовые разрешения и т.д.
+
+        val success = repository.updateUserIndividualPermissions(targetUserId, request, performingAdminId)
+        if (!success) {
+            // Репозиторий вернет false, если, например, не удалось выдать какое-то право из-за его отсутствия
+            // или если целевой пользователь не найден (хотя это проверяется в репозитории).
+            throw IllegalStateException("Failed to update one or more individual permissions for user $targetUserId. Check logs for details.")
+        }
+        log.info("Service: Successfully initiated update for individual permissions for user $targetUserId by admin '$performingAdminUsername'.")
     }
 
     suspend fun revokePermissionFromRole(roleId: Int, permissionId: Int) {
@@ -175,7 +209,7 @@ class SystemAdminService(
         val lowerCaseQuery = query.trim().lowercase()
         if (lowerCaseQuery.startsWith("drop ") || lowerCaseQuery.startsWith("truncate ") || lowerCaseQuery.startsWith("delete from ") && !lowerCaseQuery.contains(" where ")) {
             log.error("CRITICAL: Potentially DANGEROUS raw query detected from user '$username': $query")
-            // В зависимости от политики, можно либо просто логировать и разрешать (если sudo доверяют),
+            // AccessControlService зависимости от политики, можно либо просто логировать и разрешать (если sudo доверяют),
             // либо кидать исключение.
             // throw SecurityException("Execution of potentially destructive DDL/DML (DROP, TRUNCATE, DELETE without WHERE) via raw query is restricted for safety.")
         }

@@ -7,6 +7,8 @@ import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
 import com.smartcampus.domain.models.systemAdmin.RoleWithPermissionsResponse
+import com.smartcampus.domain.models.systemAdmin.UpdateUserPermissionsRequest
+import com.smartcampus.domain.models.systemAdmin.UserPermissionDetailsDto
 
 interface SystemAdminRepository {
     suspend fun getRoles(params: PageRequestParams): PaginatedResult<RoleResponse>
@@ -18,6 +20,15 @@ interface SystemAdminRepository {
     suspend fun getPermissionsById(id: Int): PermissionResponse?
     suspend fun createPermissions(permission: PermissionRequest): PermissionResponse
     suspend fun deletePermissionsById(id: Int): Boolean
+
+
+    suspend fun getUserPermissionsDetails(userId: Int): UserPermissionDetailsDto?
+    suspend fun updateUserIndividualPermissions(
+        targetUserId: Int,
+        request: UpdateUserPermissionsRequest,
+        performingAdminId: Int
+    ): Boolean
+
 
     suspend fun assignPermissionToRole(roleId: Int, permissionId: Int): Boolean
     suspend fun revokePermissionFromRole(roleId: Int, permissionId: Int): Boolean

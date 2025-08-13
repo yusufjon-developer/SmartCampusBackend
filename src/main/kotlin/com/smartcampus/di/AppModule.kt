@@ -1,7 +1,9 @@
 package com.smartcampus.di
 
+import com.smartcampus.domain.security.AccessControlService
 import com.smartcampus.domain.security.models.JwtConfig
 import io.ktor.server.application.ApplicationEnvironment
+import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 
 fun appModule(environment: ApplicationEnvironment) = module {
@@ -16,4 +18,6 @@ fun appModule(environment: ApplicationEnvironment) = module {
             ?: (3_600_000 * 24)
         )
     }
+
+    singleOf(::AccessControlService)
 }

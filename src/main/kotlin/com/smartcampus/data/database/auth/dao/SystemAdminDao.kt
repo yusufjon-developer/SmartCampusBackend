@@ -5,6 +5,7 @@ import com.smartcampus.data.database.auth.entities.AccessGrantsTable
 import com.smartcampus.data.database.auth.entities.PermissionsTable
 import com.smartcampus.data.database.auth.entities.RolePermissionsTable
 import com.smartcampus.data.database.auth.entities.RolesTable
+import com.smartcampus.data.database.auth.entities.UsersTable
 import com.smartcampus.data.utils.toPermissionResponse
 import com.smartcampus.data.utils.toRoleResponse
 import com.smartcampus.domain.models.common.PageRequestParams
@@ -23,6 +24,7 @@ import org.jetbrains.exposed.v1.jdbc.Query
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 
@@ -71,6 +73,14 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
         RolesTable.selectAll().where { RolesTable.id eq id }.singleOrNull()?.toRoleResponse()
     }
 
+    suspend fun getRoleByName(name: String): RoleResponse? = authDb.query {
+        RolesTable
+            .selectAll()
+            .where { RolesTable.name eq name } // Ищем роль по точному совпадению имени
+            .map { it.toRoleResponse() }      // Преобразуем ResultRow в RoleResponse
+            .singleOrNull()                   // Ожидаем одну роль или ни одной
+    }
+
     suspend fun getPermissionsForRole(roleId: Int): List<PermissionResponse> =
         authDb.query {
             val p = PermissionsTable.alias("p")
@@ -90,6 +100,14 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
                     )
                 }
         }
+
+    suspend fun getPermissionIdsForRole(roleId: Int): Set<Int> = authDb.query {
+        RolePermissionsTable
+            .select(RolePermissionsTable.roleId)
+            .where { RolePermissionsTable.roleId eq roleId }
+            .map { it[RolePermissionsTable.permissionId].value }
+            .toSet()
+    }
 
 
     suspend fun createRole(roleRequest: RoleRequest): RoleResponse = authDb.query {
@@ -156,6 +174,81 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
         RolePermissionsTable.deleteWhere {
             (RolePermissionsTable.roleId eq roleId) and (RolePermissionsTable.permissionId eq permissionId)
         } > 0
+    }
+
+    suspend fun getUserInfoById(userId: Int): Triple<String, Int, Int?>? = authDb.query {
+        UsersTable
+            .select(UsersTable.username, UsersTable.id, UsersTable.roleId)
+            .where { UsersTable.id eq userId }
+            .map {
+                Triple(
+                    it[UsersTable.username],
+                    it[UsersTable.id].value,
+                    it[UsersTable.roleId]?.value
+                )
+            }
+            .singleOrNull()
+    }
+
+    suspend fun getIndividualPermissionIdsForUser(userId: Int): Set<Int> = authDb.query {
+        AccessGrantsTable
+            .select(AccessGrantsTable.grantedTo)
+            .where { AccessGrantsTable.grantedTo eq userId }
+            .map { it[AccessGrantsTable.permissionId].value }
+            .toSet()
+    }
+
+    suspend fun getPermissionNamesByIds(permissionIds: Set<Int>): Set<String> = authDb.query {
+        if (permissionIds.isEmpty()) {
+            emptySet()
+        } else {
+            PermissionsTable
+                .select(PermissionsTable.name)
+                .where { PermissionsTable.id inList permissionIds }
+                .map { it[PermissionsTable.name] }
+                .toSet()
+        }
+    }
+
+    suspend fun grantIndividualPermissionToUser(
+        grantedToUserId: Int,
+        permissionId: Int,
+        grantedByUserId: Int
+    ): Boolean = authDb.query {
+        try {
+            val existingGrantCount = AccessGrantsTable
+                .selectAll()
+                .where { (AccessGrantsTable.grantedTo eq grantedToUserId) and (AccessGrantsTable.permissionId eq permissionId) }
+                .count()
+
+            if (existingGrantCount > 0) {
+                return@query true
+            }
+
+            AccessGrantsTable.insert {
+                it[AccessGrantsTable.grantedTo] = grantedToUserId
+                it[AccessGrantsTable.permissionId] = permissionId
+                it[AccessGrantsTable.grantedBy] = grantedByUserId
+            }
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun revokeIndividualPermissionFromUser(
+        grantedToUserId: Int,
+        permissionId: Int
+    ): Boolean = authDb.query {
+        AccessGrantsTable.deleteWhere {
+            (AccessGrantsTable.grantedTo eq grantedToUserId) and (AccessGrantsTable.permissionId eq permissionId)
+        } > 0
+    }
+
+    suspend fun getAllPermissionDefinitions(): List<PermissionResponse> = authDb.query {
+        PermissionsTable
+            .selectAll()
+            .map { it.toPermissionResponse() }
     }
 
 

@@ -5,9 +5,9 @@ import org.jetbrains.exposed.v1.javatime.CurrentDateTime
 import org.jetbrains.exposed.v1.javatime.datetime
 
 object AccessGrantsTable : IntIdTable("Access_Grants") {
-    val grantedBy = reference("granted_by", UsersTable)
-    val grantedTo = reference("granted_to", UsersTable)
-    val permissionId = reference("permission_id", PermissionsTable)
+    val grantedBy = reference("granted_by", UsersTable.id)
+    val grantedTo = reference("granted_to", UsersTable.id)
+    val permissionId = reference("permission_id", PermissionsTable.id)
     val grantDate =
         datetime("grant_date").defaultExpression(CurrentDateTime)
     val expiresAt = datetime("expires_at").nullable()

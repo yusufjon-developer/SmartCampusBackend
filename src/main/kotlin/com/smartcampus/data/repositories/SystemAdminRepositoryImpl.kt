@@ -3,11 +3,15 @@ package com.smartcampus.data.repositories
 import com.smartcampus.data.database.auth.dao.SystemAdminDao
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
+import com.smartcampus.domain.models.systemAdmin.PermissionInfoForUserDto
 import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
+import com.smartcampus.domain.models.systemAdmin.PermissionSourceDto
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
 import com.smartcampus.domain.models.systemAdmin.RoleWithPermissionsResponse
+import com.smartcampus.domain.models.systemAdmin.UpdateUserPermissionsRequest
+import com.smartcampus.domain.models.systemAdmin.UserPermissionDetailsDto
 import com.smartcampus.domain.repositories.SystemAdminRepository
 import org.slf4j.LoggerFactory
 import kotlin.math.ceil
@@ -106,6 +110,91 @@ class SystemAdminRepositoryImpl(
             return false
         }
         return dao.assignPermissionToRole(roleId, permissionId)
+    }
+
+    override suspend fun getUserPermissionsDetails(userId: Int): UserPermissionDetailsDto? {
+        log.info("Repository: Fetching permission details for user ID: $userId")
+
+        val userInfo = dao.getUserInfoById(userId)
+        if (userInfo == null) {
+            log.warn("Repository: User with ID $userId not found.")
+            return null
+        }
+        val username = userInfo.first
+        val userRoleId = userInfo.third
+
+        var roleName: String? = null
+        val rolePermissionIds = mutableSetOf<Int>()
+
+        if (userRoleId != null) {
+            val role = dao.getRoleById(userRoleId)
+            roleName = role?.name
+            if (role != null) {
+                rolePermissionIds.addAll(dao.getPermissionsForRole(userRoleId).map { it.id })
+            }
+        }
+
+        val individualPermissionIds = dao.getIndividualPermissionIdsForUser(userId)
+        val allSystemPermissions = dao.getAllPermissionDefinitions()
+
+        val permissionDetailsList = allSystemPermissions.map { permDef ->
+            val hasRolePermission = rolePermissionIds.contains(permDef.id)
+            val hasIndividualPermission = individualPermissionIds.contains(permDef.id)
+
+            val source = when {
+                hasRolePermission && hasIndividualPermission -> PermissionSourceDto.ROLE_AND_INDIVIDUAL
+                hasRolePermission -> PermissionSourceDto.ROLE
+                hasIndividualPermission -> PermissionSourceDto.INDIVIDUAL
+                else -> PermissionSourceDto.NONE
+            }
+            PermissionInfoForUserDto(
+                id = permDef.id,
+                name = permDef.name,
+                description = permDef.description,
+                hasPermission = source != PermissionSourceDto.NONE,
+                source = source
+            )
+        }
+
+        return UserPermissionDetailsDto(
+            userId = userId,
+            username = username,
+            roleId = userRoleId,
+            roleName = roleName,
+            permissions = permissionDetailsList
+        )
+    }
+
+    override suspend fun updateUserIndividualPermissions(targetUserId: Int, request: UpdateUserPermissionsRequest, performingAdminId: Int): Boolean {
+        log.info("Repository: Updating individual permissions for user ID: $targetUserId by admin ID: $performingAdminId. Request: $request")
+
+        if (dao.getUserInfoById(targetUserId) == null) {
+            log.warn("Repository: Target user with ID $targetUserId not found. Cannot update permissions.")
+            return false
+        }
+
+        var allOperationsSucceeded = true
+
+        for (permissionIdToGrant in request.grantPermissionIds.distinct()) {
+            if (dao.getPermissionById(permissionIdToGrant) == null) {
+                log.warn("Repository: Permission with ID $permissionIdToGrant not found. Skipping grant for user $targetUserId.")
+                allOperationsSucceeded = false
+                continue
+            }
+            val success = dao.grantIndividualPermissionToUser(targetUserId, permissionIdToGrant, performingAdminId)
+            if (!success) {
+                log.warn("Repository: Failed to grant individual permission $permissionIdToGrant to user $targetUserId.")
+                allOperationsSucceeded = false
+            }
+        }
+
+        for (permissionIdToRevoke in request.revokePermissionIds.distinct()) {
+            val success = dao.revokeIndividualPermissionFromUser(targetUserId, permissionIdToRevoke)
+            if (!success) {
+                log.info("Repository: Individual permission $permissionIdToRevoke was not found for user $targetUserId to revoke (or already revoked).")
+            }
+        }
+        return allOperationsSucceeded
     }
 
     override suspend fun revokePermissionFromRole(roleId: Int, permissionId: Int): Boolean {
