@@ -1,5 +1,6 @@
 package com.smartcampus.app.plugins
 
+import com.smartcampus.domain.security.AccessControlService
 import com.smartcampus.features.auth.AuthService
 import com.smartcampus.features.auth.authRoutes
 import com.smartcampus.features.systemAdmin.SystemAdminService
@@ -30,6 +31,7 @@ import org.koin.ktor.ext.inject
  */
 fun Application.configureRouting() {
 
+    val accessControlService by inject<AccessControlService>()
     val authService by inject<AuthService>()
     val systemAdminService by inject<SystemAdminService>()
 
@@ -42,7 +44,7 @@ fun Application.configureRouting() {
             call.respondText("Hello SmartCampus!")
         }
 
-        authRoutes(authService)
+        authRoutes(authService, accessControlService)
         systemAdminRoutes(systemAdminService)
 
         authenticate("auth-jwt") {

@@ -18,11 +18,11 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
-import org.koin.ktor.ext.inject
 
-fun Route.authRoutes() {
-    val authService by inject<AuthService>()
-    val accessControlService by inject<AccessControlService>()
+fun Route.authRoutes(
+    authService: AuthService,
+    accessControlService: AccessControlService
+) {
 
     route("/auth") {
         post("/student/signin") {
