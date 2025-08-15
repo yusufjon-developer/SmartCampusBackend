@@ -192,7 +192,7 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
 
     suspend fun getIndividualPermissionIdsForUser(userId: Int): Set<Int> = authDb.query {
         AccessGrantsTable
-            .select(AccessGrantsTable.grantedTo)
+            .selectAll()
             .where { AccessGrantsTable.grantedTo eq userId }
             .map { it[AccessGrantsTable.permissionId].value }
             .toSet()
