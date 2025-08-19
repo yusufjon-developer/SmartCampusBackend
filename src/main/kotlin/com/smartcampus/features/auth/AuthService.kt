@@ -1,17 +1,18 @@
 package com.smartcampus.features.auth
 
+import com.smartcampus.domain.models.auth.RegisterRequest
+import com.smartcampus.domain.models.auth.RegisterResponse
 import com.smartcampus.domain.models.employee.EmployeeSignInRequest
 import com.smartcampus.domain.models.employee.EmployeeSignInResponse
-import com.smartcampus.domain.models.employee.EmployeeSignUpRequest
-import com.smartcampus.domain.models.employee.EmployeeSignUpResponse
 import com.smartcampus.domain.models.student.StudentSignInRequest
 import com.smartcampus.domain.models.student.StudentSignInResponse
-import com.smartcampus.domain.models.student.StudentSignUpRequest
-import com.smartcampus.domain.models.student.StudentSignUpResponse
 import com.smartcampus.domain.repositories.AuthRepository
+import com.smartcampus.domain.security.PasswordHasher
+import com.smartcampus.domain.utils.Either
 
 class AuthService(
-    private val repository: AuthRepository
+    private val repository: AuthRepository,
+    private val passwordHasher: PasswordHasher
 ) {
 
     suspend fun signInStudent(request: StudentSignInRequest): StudentSignInResponse {
@@ -23,11 +24,11 @@ class AuthService(
     }
 
 
-    suspend fun signUpStudent(request: StudentSignUpRequest): StudentSignUpResponse {
-        return repository.signUpStudent(request)
-    }
-
-    suspend fun signUpEmployee(request: EmployeeSignUpRequest): EmployeeSignUpResponse {
-        return repository.signUpEmployee(request)
+    suspend fun register(request: RegisterRequest): Either<String, RegisterResponse> {
+        if (request.username.isBlank() || request.password.isBlank()) {
+            return Either.Left("Username and password are required")
+        }
+        val hashed = passwordHasher.hashPassword(request.password)
+        return repository.registerUser(request, hashed)
     }
 }

@@ -3,14 +3,14 @@ package com.smartcampus.data.repositories
 import com.smartcampus.data.database.auth.dao.SystemAdminDao
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
+import com.smartcampus.domain.models.systemAdmin.PermissionInfoForRoleDto
 import com.smartcampus.domain.models.systemAdmin.PermissionInfoForUserDto
-import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.PermissionSourceDto
+import com.smartcampus.domain.models.systemAdmin.RolePermissionDetailsDto
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
-import com.smartcampus.domain.models.systemAdmin.RoleWithPermissionsResponse
-import com.smartcampus.domain.models.systemAdmin.UpdateUserPermissionsRequest
+import com.smartcampus.domain.models.systemAdmin.UpdatePermissionsRequest
 import com.smartcampus.domain.models.systemAdmin.UserPermissionDetailsDto
 import com.smartcampus.domain.repositories.SystemAdminRepository
 import org.slf4j.LoggerFactory
@@ -39,17 +39,73 @@ class SystemAdminRepositoryImpl(
 
 
 
-    override suspend fun getRoleById(id: Int): RoleWithPermissionsResponse? {
-        log.info("Fetching role by id: $id")
-        val role = dao.getRoleById(id)
-        return if (role != null) {
-            val permissions = dao.getPermissionsForRole(id)
-            log.info("Found role: ${role.name} with ${permissions.size} permissions")
-            RoleWithPermissionsResponse(role, permissions)
-        } else {
-            log.warn("Role with id $id not found")
-            null
+    override suspend fun getRoleById(roleId: Int): RolePermissionDetailsDto? {
+        log.info("Repository: Fetching permission details for role ID: $roleId")
+        val role = dao.getRoleById(roleId)
+        if (role == null) {
+            log.warn("Repository: Role with ID $roleId not found.")
+            return null
         }
+
+        val rolePermissionIds = dao.getPermissionIdsForRole(roleId)
+        val allSystemPermissions = dao.getAllPermissionDefinitions()
+
+        val permissionDetailsList = allSystemPermissions.map { permDef ->
+            val hasRolePermission = rolePermissionIds.contains(permDef.id)
+            val source = if (hasRolePermission) PermissionSourceDto.ROLE else PermissionSourceDto.NONE
+            PermissionInfoForRoleDto(
+                id = permDef.id,
+                name = permDef.name,
+                description = permDef.description,
+                hasPermission = hasRolePermission,
+                source = source
+            )
+        }
+
+        return RolePermissionDetailsDto(
+            roleId = role.id,
+            name = role.name,
+            description = role.description,
+            permissions = permissionDetailsList
+        )
+    }
+
+    override suspend fun updateRolePermissions(roleId: Int, request: UpdatePermissionsRequest, performingAdminId: Int): Boolean {
+        log.info("Repository: Updating permissions for role ID: $roleId by admin ID: $performingAdminId. Request: $request")
+
+        val role = dao.getRoleById(roleId)
+        if (role == null) {
+            log.warn("Repository: Role with ID $roleId not found.")
+            return false
+        }
+
+        var allOperationsSucceeded = true
+
+        // Grant permissions (insert into RolePermissionsTable)
+        for (permissionIdToGrant in request.grantPermissionIds.distinct()) {
+            val perm = dao.getPermissionById(permissionIdToGrant)
+            if (perm == null) {
+                log.warn("Repository: Permission with ID $permissionIdToGrant not found. Skipping grant.")
+                allOperationsSucceeded = false
+                continue
+            }
+            val success = dao.assignPermissionToRole(roleId, permissionIdToGrant)
+            if (!success) {
+                log.warn("Repository: Failed to assign permission $permissionIdToGrant to role $roleId.")
+                allOperationsSucceeded = false
+            }
+        }
+
+        // Revoke permissions
+        for (permissionIdToRevoke in request.revokePermissionIds.distinct()) {
+            val success = dao.revokePermissionFromRole(roleId, permissionIdToRevoke)
+            if (!success) {
+                // Возможно, права и не было — логируем, но не делаем это фатальной ошибкой
+                log.info("Repository: Permission $permissionIdToRevoke was not present on role $roleId (or already revoked).")
+            }
+        }
+
+        return allOperationsSucceeded
     }
 
     override suspend fun createRole(role: RoleRequest): RoleResponse {
@@ -85,16 +141,6 @@ class SystemAdminRepositoryImpl(
             log.warn("Permission with id $id not found")
         }
         return permission
-    }
-
-    override suspend fun createPermissions(permission: PermissionRequest): PermissionResponse {
-        log.info("Creating new permission: ${permission.name}")
-        return dao.createPermission(permission)
-    }
-
-    override suspend fun deletePermissionsById(id: Int): Boolean {
-        log.info("Deleting permission by id: $id")
-        return dao.deletePermission(id)
     }
 
     override suspend fun assignPermissionToRole(roleId: Int, permissionId: Int): Boolean {
@@ -165,7 +211,7 @@ class SystemAdminRepositoryImpl(
         )
     }
 
-    override suspend fun updateUserIndividualPermissions(targetUserId: Int, request: UpdateUserPermissionsRequest, performingAdminId: Int): Boolean {
+    override suspend fun updateUserIndividualPermissions(targetUserId: Int, request: UpdatePermissionsRequest, performingAdminId: Int): Boolean {
         log.info("Repository: Updating individual permissions for user ID: $targetUserId by admin ID: $performingAdminId. Request: $request")
 
         if (dao.getUserInfoById(targetUserId) == null) {

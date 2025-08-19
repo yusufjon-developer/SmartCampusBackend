@@ -2,12 +2,11 @@ package com.smartcampus.features.systemAdmin
 
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
-import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
+import com.smartcampus.domain.models.systemAdmin.RolePermissionDetailsDto
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
-import com.smartcampus.domain.models.systemAdmin.RoleWithPermissionsResponse
-import com.smartcampus.domain.models.systemAdmin.UpdateUserPermissionsRequest
+import com.smartcampus.domain.models.systemAdmin.UpdatePermissionsRequest
 import com.smartcampus.domain.models.systemAdmin.UserPermissionDetailsDto
 import com.smartcampus.domain.repositories.SystemAdminRepository
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -24,10 +23,25 @@ class SystemAdminService(
         return repository.getRoles(params)
     }
 
-    suspend fun getRoleWithPermissions(roleId: Int): RoleWithPermissionsResponse {
+    suspend fun getRoleWithPermissions(roleId: Int): RolePermissionDetailsDto {
         log.debug("Service: Fetching role $roleId with permissions.")
         return repository.getRoleById(roleId)
             ?: throw NoSuchElementException("Role with id $roleId not found.")
+    }
+
+    suspend fun updateRolePermissions(roleId: Int, request: UpdatePermissionsRequest, performingAdminPrincipal: JWTPrincipal) {
+        val performingAdminId = performingAdminPrincipal.payload.getClaim("userId").asInt()
+            ?: throw IllegalStateException("Performing admin User ID not found in JWT principal.")
+        val performingAdminUsername = performingAdminPrincipal.payload.getClaim("username").asString()
+            ?: "UnknownAdmin"
+
+        log.info("Service: Admin '$performingAdminUsername' (ID: $performingAdminId) is attempting to update permissions for role ID: $roleId. Request: $request")
+
+        val success = repository.updateRolePermissions(roleId, request, performingAdminId)
+        if (!success) {
+            throw IllegalStateException("Failed to update one or more permissions for role $roleId. Check logs for details.")
+        }
+        log.info("Service: Successfully updated permissions for role $roleId by admin '$performingAdminUsername'.")
     }
 
     suspend fun createRole(request: RoleRequest): RoleResponse {
@@ -59,22 +73,6 @@ class SystemAdminService(
         log.debug("Service: Fetching permission $permissionId.")
         return repository.getPermissionsById(permissionId)
             ?: throw NoSuchElementException("Permission with id $permissionId not found.")
-    }
-
-    suspend fun createPermission(request: PermissionRequest): PermissionResponse {
-        log.info("Service: Creating permission with name '${request.name}'.")
-        if (request.name.isBlank()) {
-            throw IllegalArgumentException("Permission name cannot be empty.")
-        }
-        return repository.createPermissions(request)
-    }
-
-    suspend fun deletePermission(permissionId: Int) {
-        log.info("Service: Deleting permission $permissionId.")
-        val success = repository.deletePermissionsById(permissionId)
-        if (!success) {
-            throw NoSuchElementException("Permission with id $permissionId not found or could not be deleted.")
-        }
     }
 
     suspend fun assignPermissionToRole(roleId: Int, permissionId: Int) {
@@ -127,7 +125,7 @@ class SystemAdminService(
             ?: throw NoSuchElementException("User with ID $userId not found or details could not be retrieved.")
     }
 
-    suspend fun updateUserIndividualPermissions(targetUserId: Int, request: UpdateUserPermissionsRequest, performingAdminPrincipal: JWTPrincipal) {
+    suspend fun updateUserIndividualPermissions(targetUserId: Int, request: UpdatePermissionsRequest, performingAdminPrincipal: JWTPrincipal) {
         val performingAdminId = performingAdminPrincipal.payload.getClaim("userId").asInt()
             ?: throw IllegalStateException("Performing admin User ID not found in JWT principal.")
         val performingAdminUsername = performingAdminPrincipal.payload.getClaim("username").asString()

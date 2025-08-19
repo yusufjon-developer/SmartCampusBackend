@@ -40,6 +40,31 @@ CREATE TABLE Users (
 );
 GO
 
+-- Таблица: Users
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Users' and xtype='U')
+CREATE TABLE Users (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    username NVARCHAR(100) NOT NULL UNIQUE,
+    password_hash NVARCHAR(255) NOT NULL,
+    email NVARCHAR(255),
+    full_name NVARCHAR(255),
+    role_id INT NULL,
+    is_active BIT DEFAULT 1,
+    created_at DATETIME DEFAULT GETDATE(),
+    student_profile_id INT NULL,
+    teacher_profile_id INT NULL,
+
+    CONSTRAINT FK_Users_Roles FOREIGN KEY (role_id) REFERENCES Roles(id) ON DELETE SET NULL,
+    CONSTRAINT CK_User_ProfileLink CHECK (
+        (student_profile_id IS NOT NULL AND teacher_profile_id IS NULL) OR
+        (student_profile_id IS NULL AND teacher_profile_id IS NOT NULL) OR
+
+    ),
+    CONSTRAINT UQ_Users_StudentProfileId UNIQUE (student_profile_id),
+    CONSTRAINT UQ_Users_TeacherProfileId UNIQUE (teacher_profile_id)
+);
+GO
+
 -- Таблица: User_Departments
 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='User_Departments' and xtype='U')
 CREATE TABLE User_Departments (

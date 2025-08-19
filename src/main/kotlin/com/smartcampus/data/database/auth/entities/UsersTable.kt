@@ -12,4 +12,6 @@ object UsersTable : IntIdTable("Users") {
     val roleId = reference("role_id", RolesTable).nullable()
     val isActive = bool("is_active").default(true)
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
+    val studentProfileId = integer("student_profile_id").nullable().uniqueIndex()
+    val teacherProfileId = integer("teacher_profile_id").nullable().uniqueIndex()
 }

@@ -4,25 +4,27 @@ import com.smartcampus.data.database.auth.dao.AuthDao
 import com.smartcampus.data.database.auth.entities.RolesTable
 import com.smartcampus.data.database.auth.entities.UserDevicesTable
 import com.smartcampus.data.database.auth.entities.UsersTable
+import com.smartcampus.data.database.smartCampus.dao.SmartCampusProfileDao
+import com.smartcampus.domain.models.auth.RegisterRequest
+import com.smartcampus.domain.models.auth.RegisterResponse
 import com.smartcampus.domain.models.employee.EmployeeSignInRequest
 import com.smartcampus.domain.models.employee.EmployeeSignInResponse
-import com.smartcampus.domain.models.employee.EmployeeSignUpRequest
-import com.smartcampus.domain.models.employee.EmployeeSignUpResponse
 import com.smartcampus.domain.models.student.StudentSignInRequest
 import com.smartcampus.domain.models.student.StudentSignInResponse
-import com.smartcampus.domain.models.student.StudentSignUpRequest
-import com.smartcampus.domain.models.student.StudentSignUpResponse
 import com.smartcampus.domain.repositories.AuthRepository
 import com.smartcampus.domain.security.PasswordHasher
 import com.smartcampus.domain.security.TokenUtils
-import io.ktor.utils.io.InternalAPI
+import com.smartcampus.domain.utils.Either
+import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
 
 class AuthRepositoryImpl(
     private val authDao: AuthDao,
+    private val smartCampusDao: SmartCampusProfileDao,
     private val tokenUtils: TokenUtils,
     private val passwordHasher: PasswordHasher
 ) : AuthRepository {
+    private val log = LoggerFactory.getLogger(AuthRepositoryImpl::class.java)
 
     override suspend fun signInStudent(request: StudentSignInRequest): StudentSignInResponse {
         val userRow = authDao.findUserByEmailWithRole(request.email)
@@ -42,7 +44,6 @@ class AuthRepositoryImpl(
         }
 
         val userId = userRow[UsersTable.id].value
-
         val userRoles = listOf(roleName)
 
         val token = tokenUtils.generateToken(
@@ -102,70 +103,66 @@ class AuthRepositoryImpl(
         return EmployeeSignInResponse(token)
     }
 
-    @OptIn(InternalAPI::class)
-    override suspend fun signUpStudent(request: StudentSignUpRequest): StudentSignUpResponse {
-        if (authDao.findUserByEmailWithRole(request.email) != null) {
-            throw IllegalArgumentException("User with email '${request.email}' already exists.")
+    override suspend fun registerUser(
+        request: RegisterRequest,
+        passwordHash: String
+    ): Either<String, RegisterResponse> {
+        // Validate single profile
+        if (request.studentProfile != null && request.teacherProfile != null) {
+            return Either.Left("Provide only one profile type: student OR teacher")
         }
-        if (authDao.findUserByUsernameWithRole(request.username) != null) {
-            throw IllegalArgumentException("User with username '${request.username}' already exists.")
+
+        val usernameLower = request.username.trim()
+
+        // Quick check (race still possible -> DB unique constraint in auth should guard)
+        if (authDao.isUsernameTaken(usernameLower)) {
+            return Either.Left("Username already taken")
         }
 
-        val studentRoleRow = authDao.findRoleByName("Student")
-            ?: throw IllegalStateException("'Student' role not found in database. Please ensure it exists.")
-        val studentRoleId = studentRoleRow[RolesTable.id].value
+        var createdStudentId: Int? = null
+        var createdTeacherId: Int? = null
 
-        val hashedPassword = passwordHasher.hashPassword(request.password)
-        val currentTime = LocalDateTime.now()
+        try {
+            // 1) create profile in SmartCampusDb
+            if (request.studentProfile != null) {
+                createdStudentId = smartCampusDao.createStudentWithOptionalInfo(
+                    request.studentProfile,
+                    request.studentInfo
+                )
+            } else if (request.teacherProfile != null) {
+                createdTeacherId = smartCampusDao.createTeacherWithOptionalInfo(
+                    request.teacherProfile,
+                    request.teacherInfo
+                )
+            }
 
-        val newUserId = authDao.createUser(
-            username = request.username,
-            email = request.email,
-            passwordHash = hashedPassword,
-            fullName = request.fullName,
-            roleId = studentRoleId,
-            isActive = true,
-            createdAt = currentTime
-        )
+            // 2) find role id in auth db
+            val roleId = request.roleName?.let { authDao.findRoleIdByName(it) }
 
-        return StudentSignUpResponse(
-            userId = newUserId,
-            message = "Student account created successfully."
-        )
+            // 3) create user in auth db
+            val createdUser = authDao.createUserAndReturnResponse(
+                username = usernameLower,
+                passwordHash = passwordHash,
+                email = request.email,
+                fullName = request.fullName,
+                roleId = roleId,
+                studentProfileId = createdStudentId,
+                teacherProfileId = createdTeacherId
+            )
+
+            return Either.Right(createdUser)
+        } catch (e: Exception) {
+            log.error("Registration failed; compensating created profiles", e)
+
+            try {
+                if (createdStudentId != null) smartCampusDao.deleteStudentCascade(createdStudentId)
+                if (createdTeacherId != null) smartCampusDao.deleteTeacherCascade(createdTeacherId)
+            } catch (comp: Exception) {
+                log.error("Compensation failed after registration error", comp)
+            }
+
+            return Either.Left("Registration failed: ${e.message ?: "unknown error"}")
+        }
     }
 
-    override suspend fun signUpEmployee(request: EmployeeSignUpRequest): EmployeeSignUpResponse {
-        if (authDao.findUserByEmailWithRole(request.email) != null) {
-            throw IllegalArgumentException("User with email '${request.email}' already exists.")
-        }
-        if (authDao.findUserByUsernameWithRole(request.username) != null) {
-            throw IllegalArgumentException("User with username '${request.username}' already exists.")
-        }
-
-        if (request.roleName.equals("Student", ignoreCase = true)) {
-            throw IllegalArgumentException("Cannot register a 'Student' via employee sign-up.")
-        }
-
-        val employeeRoleRow = authDao.findRoleByName(request.roleName)
-            ?: throw IllegalStateException("Role '${request.roleName}' not found. Please ensure it exists or use a valid role name.")
-        val employeeRoleId = employeeRoleRow[RolesTable.id].value
-
-        val hashedPassword = passwordHasher.hashPassword(request.password)
-        val currentTime = LocalDateTime.now()
-
-        val newUserId = authDao.createUser(
-            username = request.username,
-            email = request.email,
-            passwordHash = hashedPassword,
-            fullName = request.fullName,
-            roleId = employeeRoleId,
-            isActive = false,
-            createdAt = currentTime
-        )
-
-        return EmployeeSignUpResponse(
-            userId = newUserId,
-            message = "Employee account created successfully. It may require administrator activation."
-        )
-    }
 }

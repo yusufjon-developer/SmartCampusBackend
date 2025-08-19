@@ -4,15 +4,20 @@ import com.smartcampus.data.database.auth.SmartCampusAuthDb
 import com.smartcampus.data.database.auth.entities.RolesTable
 import com.smartcampus.data.database.auth.entities.UserDevicesTable
 import com.smartcampus.data.database.auth.entities.UsersTable
+import com.smartcampus.domain.models.auth.RegisterResponse
+import com.smartcampus.domain.models.auth.UserCredentialsDto
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
 
 class AuthDao(private val db: SmartCampusAuthDb) {
+    private val log = LoggerFactory.getLogger(AuthDao::class.java)
 
     suspend fun findUserByEmailWithRole(email: String): ResultRow? = db.query {
         UsersTable
@@ -52,37 +57,46 @@ class AuthDao(private val db: SmartCampusAuthDb) {
         } > 0
     }
 
-    suspend fun findUserByUsernameWithRole(username: String): ResultRow? = db.query { // Добавляем, если нет
-        UsersTable
-            .join(RolesTable, JoinType.INNER, UsersTable.roleId, RolesTable.id)
-            .selectAll()
-            .where { UsersTable.username eq username }
-            .singleOrNull()
+    suspend fun isUsernameTaken(username: String): Boolean = db.query {
+        UsersTable.select(UsersTable.username).where { UsersTable.username eq username }.count() > 0
     }
 
-    suspend fun findRoleByName(roleName: String): ResultRow? = db.query {
-        RolesTable.selectAll().where { RolesTable.name eq roleName }.singleOrNull()
+    suspend fun findRoleIdByName(name: String): Int? = db.query {
+        RolesTable.select(RolesTable.id).where { RolesTable.name eq name }.singleOrNull()?.get(RolesTable.id)?.value
     }
 
-    suspend fun createUser(
+    suspend fun createUserAndReturnResponse(
         username: String,
-        email: String,
         passwordHash: String,
+        email: String?,
         fullName: String?,
-        roleId: Int,
-        isActive: Boolean,
-        createdAt: LocalDateTime
-    ): Int = db.query {
-        UsersTable.insertAndGetId {
-            it[UsersTable.username] = username
-            it[UsersTable.passwordHash] = passwordHash
-            it[UsersTable.email] = email
-            if (fullName != null) it[UsersTable.fullName] = fullName
-            it[UsersTable.roleId] = roleId
-            it[UsersTable.isActive] = isActive
-            it[UsersTable.createdAt] = createdAt
-        }.value
+        roleId: Int?,
+        studentProfileId: Int?,
+        teacherProfileId: Int?
+    ): RegisterResponse = db.query {
+        val inserted = UsersTable.insertAndGetId { r ->
+            r[UsersTable.username] = username
+            r[UsersTable.passwordHash] = passwordHash
+            r[UsersTable.email] = email
+            r[UsersTable.fullName] = fullName
+            r[UsersTable.roleId] = roleId
+            r[UsersTable.isActive] = true
+            r[UsersTable.studentProfileId] = studentProfileId
+            r[UsersTable.teacherProfileId] = teacherProfileId
+        }
+        RegisterResponse(inserted.value, username, roleId, studentProfileId, teacherProfileId)
     }
 
+    suspend fun findCredentialsByUsername(username: String): UserCredentialsDto? = db.query {
+        UsersTable.selectAll().where { UsersTable.username eq username }.singleOrNull()?.let {
+            UserCredentialsDto(
+                id = it[UsersTable.id].value,
+                username = it[UsersTable.username],
+                passwordHash = it[UsersTable.passwordHash],
+                roleId = it[UsersTable.roleId]?.value,
+                studentProfileId = it[UsersTable.studentProfileId],
+                teacherProfileId = it[UsersTable.teacherProfileId]
+            )
+        }
+    }
 }
-

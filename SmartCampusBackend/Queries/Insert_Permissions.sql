@@ -191,58 +191,6 @@ IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'grades:update')
     INSERT INTO Permissions (name, description) VALUES ('grades:update', N'Редактирование оценок студентов');
 GO
 
--- Добавление ранее определенных общих разрешений и разрешений для администрирования (если они тоже должны быть созданы заново)
--- Убедитесь, что имена и описания здесь также используют N'' для Unicode, если нужно.
-
-PRINT 'Inserting general and administrative permissions...';
--- Общие разрешения
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ViewProfile')
-    INSERT INTO Permissions (name, description) VALUES ('ViewProfile', N'Просмотр собственного профиля пользователя');
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'EditProfile')
-    INSERT INTO Permissions (name, description) VALUES ('EditProfile', N'Редактирование собственного профиля пользователя');
-
--- Разрешения для Студентов (специфичные, не CRUD для таблиц SmartCampus)
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ViewOwnGrades') -- Это может дублировать grades:read_own_student, решите какой вариант оставить
-    INSERT INTO Permissions (name, description) VALUES ('ViewOwnGrades', N'Просмотр собственных академических оценок');
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ViewOwnSchedule') -- Это может дублировать schedule:read_group/own, решите какой вариант оставить
-    INSERT INTO Permissions (name, description) VALUES ('ViewOwnSchedule', N'Просмотр собственного расписания занятий');
-
--- Разрешения для Преподавателей (специфичные)
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ViewCourseStudents')
-    INSERT INTO Permissions (name, description) VALUES ('ViewCourseStudents', N'Просмотр студентов, записанных на их курсы');
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ManageGradesForCourse') -- Дублирует grades:create + grades:update для своих курсов.
-    INSERT INTO Permissions (name, description) VALUES ('ManageGradesForCourse', N'Ввод и изменение оценок для студентов на своих курсах');
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ViewDepartmentSchedule')
-    INSERT INTO Permissions (name, description) VALUES ('ViewDepartmentSchedule', N'Просмотр расписания своего факультета/кафедры');
-
--- Разрешения для Администраторов Отдела
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ManageDepartmentUsers')
-    INSERT INTO Permissions (name, description) VALUES ('ManageDepartmentUsers', N'Управление пользователями (добавление, удаление, изменение) в рамках своего факультета/кафедры');
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ManageDepartmentSchedule')
-    INSERT INTO Permissions (name, description) VALUES ('ManageDepartmentSchedule', N'Управление расписанием своего факультета/кафедры');
-
--- Разрешения для Системных Администраторов (ИБ)
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ManageAllUsers')
-    INSERT INTO Permissions (name, description) VALUES ('ManageAllUsers', N'Управление всеми пользователями в системе');
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'GrantAnyPermission')
-    INSERT INTO Permissions (name, description) VALUES ('GrantAnyPermission', N'Предоставление любого разрешения любому пользователю или роли');
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ManageRoles')
-    INSERT INTO Permissions (name, description) VALUES ('ManageRoles', N'Создание, редактирование и удаление ролей и их разрешений');
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ApproveDevices')
-    INSERT INTO Permissions (name, description) VALUES ('ApproveDevices', N'Одобрение или отклонение устройств пользователей для доступа к системе');
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'ViewSystemLogs')
-    INSERT INTO Permissions (name, description) VALUES ('ViewSystemLogs', N'Просмотр системных журналов аудита и безопасности');
-GO
-
-
--- Разрешения, которые вы упоминали в authRoutes:
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'student:register')
-    INSERT INTO Permissions (name, description) VALUES ('student:register', N'Регистрация новых студентов (если это управляемое действие)');
-IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'employee:register')
-    INSERT INTO Permissions (name, description) VALUES ('employee:register', N'Регистрация новых сотрудников');
-GO
-
-
 PRINT 'All permissions have been recreated with Unicode descriptions.';
 GO
 

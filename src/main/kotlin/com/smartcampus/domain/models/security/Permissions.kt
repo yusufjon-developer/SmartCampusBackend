@@ -2,18 +2,6 @@ package com.smartcampus.domain.models.security
 
 object Permissions {
 
-    // --- Общие и административные разрешения ---
-    const val VIEW_PROFILE = "ViewProfile"
-    const val EDIT_PROFILE = "EditProfile"
-    // ... (старые общие права, если они остаются актуальными) ...
-    const val MANAGE_ALL_USERS = "ManageAllUsers"
-    const val GRANT_ANY_PERMISSION = "GrantAnyPermission"
-    const val MANAGE_ROLES = "ManageRoles"
-    const val APPROVE_DEVICES = "ApproveDevices"
-    const val VIEW_SYSTEM_LOGS = "ViewSystemLogs"
-    const val STUDENT_REGISTER = "student:register" // Если регистрация студентов требует спец. права
-    const val EMPLOYEE_REGISTER = "employee:register"
-
     // --- Specialities (Специальности) ---
     const val SPECIALITIES_CREATE = "specialities:create"
     const val SPECIALITIES_READ = "specialities:read"
@@ -103,4 +91,23 @@ object Permissions {
     const val GRADES_READ_OWN_STUDENT = "grades:read_own_student"
     const val GRADES_READ_GROUP = "grades:read_group"
     const val GRADES_UPDATE = "grades:update"
+
+    fun getAllPermissionNames(): List<String> {
+        return listOf(
+            SPECIALITIES_CREATE, SPECIALITIES_READ, SPECIALITIES_UPDATE, SPECIALITIES_DELETE,
+            GROUPS_CREATE, GROUPS_READ, GROUPS_UPDATE, GROUPS_DELETE,
+            SUBJECTS_CREATE, SUBJECTS_READ, SUBJECTS_UPDATE, SUBJECTS_DELETE,
+            TEACHERS_CREATE, TEACHERS_READ_ALL, TEACHERS_READ_OWN, TEACHERS_UPDATE_ALL, TEACHERS_UPDATE_OWN, TEACHERS_DELETE, TEACHERS_INFO_UPDATE_ALL, TEACHERS_INFO_UPDATE_OWN,
+            STUDENTS_CREATE, STUDENTS_READ_ALL, STUDENTS_READ_OWN, STUDENTS_UPDATE_ALL, STUDENTS_UPDATE_OWN, STUDENTS_DELETE, STUDENTS_INFO_UPDATE_ALL, STUDENTS_INFO_UPDATE_OWN,
+            AUDITORIUMS_CREATE, AUDITORIUMS_READ, AUDITORIUMS_UPDATE, AUDITORIUMS_DELETE,
+            DISCIPLINES_CREATE, DISCIPLINES_READ, DISCIPLINES_UPDATE, DISCIPLINES_DELETE,
+            CURRICULUMS_CREATE, CURRICULUMS_READ, CURRICULUMS_UPDATE, CURRICULUMS_DELETE, CURRICULUMS_APPROVE,
+            CURRICULUM_DISCIPLINES_MANAGE, CURRICULUM_DISCIPLINES_READ,
+            TEACHERS_WORKLOAD_CREATE, TEACHERS_WORKLOAD_READ_ALL, TEACHERS_WORKLOAD_READ_OWN, TEACHERS_WORKLOAD_UPDATE, TEACHERS_WORKLOAD_DELETE,
+            SCHEDULE_CREATE, SCHEDULE_READ_ALL, SCHEDULE_READ_GROUP, SCHEDULE_READ_TEACHER, SCHEDULE_UPDATE, SCHEDULE_DELETE,
+            ATTENDANCE_CREATE, ATTENDANCE_READ_ALL, ATTENDANCE_READ_OWN_STUDENT, ATTENDANCE_READ_GROUP, ATTENDANCE_UPDATE,
+            GRADES_CREATE, GRADES_READ_ALL, GRADES_READ_OWN_STUDENT, GRADES_READ_GROUP, GRADES_UPDATE
+        )
+    }
 }
+

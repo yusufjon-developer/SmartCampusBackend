@@ -43,7 +43,6 @@ CREATE TABLE Teachers (
     name NVARCHAR(255),
     lastname NVARCHAR(255),
     birthday DATE,
-    email NVARCHAR(255),
     phone_number NVARCHAR(50),
     photo VARBINARY(MAX)
 );
@@ -74,7 +73,6 @@ CREATE TABLE Students (
     lastname NVARCHAR(255),
     birthday DATE,
     group_id INT,
-    email NVARCHAR(255),
     phone_number NVARCHAR(50),
     photo VARBINARY(MAX),
     CONSTRAINT FK_Students_Groups FOREIGN KEY (group_id) REFERENCES Groups(id) ON DELETE CASCADE

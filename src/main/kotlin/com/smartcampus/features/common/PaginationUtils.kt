@@ -2,7 +2,6 @@ package com.smartcampus.features.common
 
 import com.smartcampus.domain.models.common.PageRequestParams
 import io.ktor.server.application.ApplicationCall
-import kotlin.text.toIntOrNull
 
 fun ApplicationCall.getPageRequestParams(): PageRequestParams {
     val page = request.queryParameters["page"]?.toIntOrNull() ?: 1

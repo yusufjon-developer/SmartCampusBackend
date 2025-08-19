@@ -9,7 +9,6 @@ object StudentsTable : IntIdTable("Students") {
     val lastname = varchar("lastname", 255).nullable()
     val birthday = date("birthday").nullable()
     val groupId = reference("group_id", GroupsTable).nullable()
-    val email = varchar("email", 255).nullable()
     val phoneNumber = varchar("phone_number", 50).nullable()
     val photo = blob("photo").nullable()
 }

@@ -9,7 +9,6 @@ import com.smartcampus.data.database.auth.entities.UsersTable
 import com.smartcampus.data.utils.toPermissionResponse
 import com.smartcampus.data.utils.toRoleResponse
 import com.smartcampus.domain.models.common.PageRequestParams
-import com.smartcampus.domain.models.systemAdmin.PermissionRequest
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
@@ -103,7 +102,7 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
 
     suspend fun getPermissionIdsForRole(roleId: Int): Set<Int> = authDb.query {
         RolePermissionsTable
-            .select(RolePermissionsTable.roleId)
+            .select(RolePermissionsTable.permissionId)
             .where { RolePermissionsTable.roleId eq roleId }
             .map { it[RolePermissionsTable.permissionId].value }
             .toSet()
@@ -143,21 +142,6 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
             ?.toPermissionResponse()
     }
 
-    suspend fun createPermission(permissionRequest: PermissionRequest): PermissionResponse =
-        authDb.query {
-            val newId = PermissionsTable.insertAndGetId {
-                it[name] = permissionRequest.name
-                it[description] = permissionRequest.description
-            }
-            PermissionResponse(newId.value, permissionRequest.name, permissionRequest.description)
-        }
-
-    suspend fun deletePermission(permissionId: Int): Boolean = authDb.query {
-        RolePermissionsTable.deleteWhere { RolePermissionsTable.permissionId eq permissionId }
-        AccessGrantsTable.deleteWhere { AccessGrantsTable.permissionId eq permissionId }
-        PermissionsTable.deleteWhere { PermissionsTable.id eq permissionId } > 0
-    }
-
     suspend fun assignPermissionToRole(roleId: Int, permissionId: Int): Boolean = authDb.query {
         try {
             RolePermissionsTable.insert {
@@ -192,7 +176,7 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
 
     suspend fun getIndividualPermissionIdsForUser(userId: Int): Set<Int> = authDb.query {
         AccessGrantsTable
-            .selectAll()
+            .select(AccessGrantsTable.permissionId)
             .where { AccessGrantsTable.grantedTo eq userId }
             .map { it[AccessGrantsTable.permissionId].value }
             .toSet()

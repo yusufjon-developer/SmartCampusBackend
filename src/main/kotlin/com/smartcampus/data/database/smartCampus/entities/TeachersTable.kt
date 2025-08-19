@@ -8,7 +8,6 @@ object TeachersTable : IntIdTable("Teachers") {
     val name = varchar("name", 255).nullable()
     val lastname = varchar("lastname", 255).nullable()
     val birthday = date("birthday").nullable()
-    val email = varchar("email", 255).nullable()
     val phoneNumber = varchar("phone_number", 50).nullable()
     val photo = blob("photo").nullable()
 }
