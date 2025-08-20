@@ -1,7 +1,7 @@
 package com.smartcampus.di.featuresModule
 
-import com.smartcampus.data.database.auth.dao.AuthDao
-import com.smartcampus.data.database.smartCampus.dao.SmartCampusProfileDao
+import com.smartcampus.data.dao.AuthDao
+import com.smartcampus.data.dao.SmartCampusProfileDao
 import com.smartcampus.data.repositories.AuthRepositoryImpl
 import com.smartcampus.domain.repositories.AuthRepository
 import com.smartcampus.features.auth.AuthService

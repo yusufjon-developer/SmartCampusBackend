@@ -1,4 +1,4 @@
-package com.smartcampus.domain.models.security
+package com.smartcampus.domain.security.models
 
 object Permissions {
 
@@ -110,4 +110,3 @@ object Permissions {
         )
     }
 }
-

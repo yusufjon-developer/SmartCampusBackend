@@ -2,7 +2,7 @@ package com.smartcampus.features.auth
 
 import com.smartcampus.domain.models.auth.RegisterRequest
 import com.smartcampus.domain.models.employee.EmployeeSignInRequest
-import com.smartcampus.domain.models.security.Permissions
+import com.smartcampus.domain.security.models.Permissions
 import com.smartcampus.domain.models.student.StudentSignInRequest
 import com.smartcampus.domain.security.AccessControlService
 import com.smartcampus.domain.utils.Either
@@ -14,6 +14,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
@@ -23,7 +24,7 @@ fun Route.authRoutes(
 ) {
 
     route("/auth") {
-        post("/student/signin") {
+        get("/student/signin") {
             try {
                 val request = call.receive<StudentSignInRequest>()
                 val response = authService.signInStudent(request)
@@ -66,7 +67,7 @@ fun Route.authRoutes(
     }
 
     route("/crm/auth") {
-        post("/employee/signin") {
+        get("/employee/signin") {
             try {
                 val request = call.receive<EmployeeSignInRequest>()
                 val response = authService.signInEmployee(request)

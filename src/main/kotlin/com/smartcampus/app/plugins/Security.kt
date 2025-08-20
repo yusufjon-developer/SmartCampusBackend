@@ -2,7 +2,7 @@ package com.smartcampus.app.plugins
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.smartcampus.data.database.auth.dao.SystemAdminDao
+import com.smartcampus.data.dao.SystemAdminDao
 import com.smartcampus.domain.security.models.JwtConfig
 import com.smartcampus.domain.security.models.UserSessionPrincipal
 import io.ktor.http.HttpStatusCode

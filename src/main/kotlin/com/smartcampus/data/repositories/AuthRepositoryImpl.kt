@@ -1,10 +1,10 @@
 package com.smartcampus.data.repositories
 
-import com.smartcampus.data.database.auth.dao.AuthDao
+import com.smartcampus.data.dao.AuthDao
 import com.smartcampus.data.database.auth.entities.RolesTable
 import com.smartcampus.data.database.auth.entities.UserDevicesTable
 import com.smartcampus.data.database.auth.entities.UsersTable
-import com.smartcampus.data.database.smartCampus.dao.SmartCampusProfileDao
+import com.smartcampus.data.dao.SmartCampusProfileDao
 import com.smartcampus.domain.models.auth.RegisterRequest
 import com.smartcampus.domain.models.auth.RegisterResponse
 import com.smartcampus.domain.models.employee.EmployeeSignInRequest

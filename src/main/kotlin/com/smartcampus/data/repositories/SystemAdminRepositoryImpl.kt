@@ -1,6 +1,6 @@
 package com.smartcampus.data.repositories
 
-import com.smartcampus.data.database.auth.dao.SystemAdminDao
+import com.smartcampus.data.dao.SystemAdminDao
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.models.systemAdmin.PermissionInfoForRoleDto

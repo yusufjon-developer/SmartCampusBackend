@@ -1,4 +1,4 @@
-package com.smartcampus.data.database.auth.dao
+package com.smartcampus.data.dao
 
 import com.smartcampus.data.database.auth.SmartCampusAuthDb
 import com.smartcampus.data.database.auth.entities.RolesTable

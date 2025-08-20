@@ -1,4 +1,4 @@
-package com.smartcampus.data.database.auth.dao
+package com.smartcampus.data.dao
 
 import com.smartcampus.data.database.auth.SmartCampusAuthDb
 import com.smartcampus.data.database.auth.entities.AccessGrantsTable
@@ -26,6 +26,7 @@ import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
+import kotlin.collections.get
 
 class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
 

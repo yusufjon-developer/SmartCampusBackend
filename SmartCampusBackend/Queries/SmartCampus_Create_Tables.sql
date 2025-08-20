@@ -227,3 +227,48 @@ CREATE TABLE Grades (
     CONSTRAINT FK_Grades_Teachers FOREIGN KEY (teacher_id) REFERENCES Teachers(id) ON DELETE NO ACTION
 );
 GO
+
+
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Academic_Weeks' AND xtype='U')
+BEGIN
+    CREATE TABLE Academic_Weeks (
+        id INT PRIMARY KEY IDENTITY(1,1),
+        academic_year NVARCHAR(20) NOT NULL, -- e.g. '2024/2025'
+        week_number INT NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        description NVARCHAR(255) NULL,
+        is_active BIT NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT GETDATE()
+    );
+
+    -- Уникальность: одна неделя номера в рамках учебного года
+    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'UX_AcademicWeeks_Year_Week' AND object_id = OBJECT_ID('Academic_Weeks'))
+    BEGIN
+        CREATE UNIQUE INDEX UX_AcademicWeeks_Year_Week ON Academic_Weeks(academic_year, week_number);
+    END
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Workload_Execution' AND xtype='U')
+BEGIN
+    CREATE TABLE Workload_Execution (
+        id INT PRIMARY KEY IDENTITY(1,1),
+        workload_id INT NOT NULL, -- FK -> Teachers_Workload(id)
+        execution_date DATE NOT NULL,
+        hours DECIMAL(5,2) NOT NULL CHECK (hours >= 0),
+        executed_by INT NULL, -- optional FK -> Teachers(id) (who actually carried out or confirmed)
+        notes NVARCHAR(1000) NULL,
+        status NVARCHAR(50) NULL, -- e.g. 'planned','done','partial'
+        created_at DATETIME NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT FK_WorkloadExecution_Workload FOREIGN KEY (workload_id) REFERENCES Teachers_Workload(id) ON DELETE CASCADE,
+        CONSTRAINT FK_WorkloadExecution_ExecutedBy FOREIGN KEY (executed_by) REFERENCES Teachers(id) ON DELETE NO ACTION
+    );
+
+    -- Индекс для быстрого поиска по workload_id
+    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_WorkloadExecution_WorkloadId' AND object_id = OBJECT_ID('Workload_Execution'))
+    BEGIN
+        CREATE INDEX IX_WorkloadExecution_WorkloadId ON Workload_Execution(workload_id);
+    END
+END
+GO

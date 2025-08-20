@@ -1,6 +1,6 @@
 package com.smartcampus.di.featuresModule
 
-import com.smartcampus.data.database.auth.dao.SystemAdminDao
+import com.smartcampus.data.dao.SystemAdminDao
 import com.smartcampus.data.repositories.SystemAdminRepositoryImpl
 import com.smartcampus.domain.repositories.SystemAdminRepository
 import com.smartcampus.features.systemAdmin.SystemAdminService

@@ -1,4 +1,4 @@
-package com.smartcampus.data.database.smartCampus.dao
+package com.smartcampus.data.dao
 
 import com.smartcampus.data.database.smartCampus.SmartCampusDb
 import com.smartcampus.data.database.smartCampus.entities.GroupsTable

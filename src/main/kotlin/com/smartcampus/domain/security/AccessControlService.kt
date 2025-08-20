@@ -1,6 +1,6 @@
 package com.smartcampus.domain.security
 
-import com.smartcampus.data.database.auth.dao.SystemAdminDao
+import com.smartcampus.data.dao.SystemAdminDao
 import com.smartcampus.domain.security.models.UserSessionPrincipal
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
