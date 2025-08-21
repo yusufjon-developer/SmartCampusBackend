@@ -1,11 +1,11 @@
 package com.smartcampus.data.repositories
 
 import com.smartcampus.data.dao.WorkloadDao
-import com.smartcampus.domain.models.common.PageRequestParams
-import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.models.TeacherWorkloadCreateRequest
 import com.smartcampus.domain.models.TeacherWorkloadDto
 import com.smartcampus.domain.models.TeacherWorkloadUpdateRequest
+import com.smartcampus.domain.models.common.PageRequestParams
+import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.repositories.WorkloadRepository
 
 class WorkloadRepositoryImpl(private val dao: WorkloadDao) : WorkloadRepository {

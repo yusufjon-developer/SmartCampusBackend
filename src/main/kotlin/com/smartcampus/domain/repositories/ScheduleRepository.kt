@@ -1,12 +1,12 @@
 package com.smartcampus.domain.repositories
 
-import com.smartcampus.domain.models.common.PageRequestParams
-import com.smartcampus.domain.models.common.PaginatedResult
-import com.smartcampus.domain.models.ScheduleSearchFilter
-import com.smartcampus.domain.models.ScheduleSearchResult
 import com.smartcampus.domain.models.ScheduleCreateRequest
 import com.smartcampus.domain.models.ScheduleEntryDto
+import com.smartcampus.domain.models.ScheduleSearchFilter
+import com.smartcampus.domain.models.ScheduleSearchResult
 import com.smartcampus.domain.models.ScheduleUpdateRequest
+import com.smartcampus.domain.models.common.PageRequestParams
+import com.smartcampus.domain.models.common.PaginatedResult
 
 interface ScheduleRepository {
     suspend fun searchSchedule(filter: ScheduleSearchFilter): ScheduleSearchResult

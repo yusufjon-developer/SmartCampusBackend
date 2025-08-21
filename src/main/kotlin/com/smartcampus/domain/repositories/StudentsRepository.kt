@@ -1,11 +1,10 @@
 package com.smartcampus.domain.repositories
 
+import com.smartcampus.domain.models.StudentDetailsDto
+import com.smartcampus.domain.models.StudentListItemDto
+import com.smartcampus.domain.models.StudentUpdateRequest
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
-import com.smartcampus.domain.models.StudentListItemDto
-import com.smartcampus.domain.models.StudentDetailsDto
-import com.smartcampus.domain.models.StudentCreateRequest
-import com.smartcampus.domain.models.StudentUpdateRequest
 
 interface StudentsRepository {
     suspend fun getStudents(params: PageRequestParams): PaginatedResult<StudentListItemDto>

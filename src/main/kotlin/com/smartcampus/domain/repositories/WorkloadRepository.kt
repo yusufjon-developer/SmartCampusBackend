@@ -1,10 +1,10 @@
 package com.smartcampus.domain.repositories
 
-import com.smartcampus.domain.models.common.PageRequestParams
-import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.models.TeacherWorkloadCreateRequest
 import com.smartcampus.domain.models.TeacherWorkloadDto
 import com.smartcampus.domain.models.TeacherWorkloadUpdateRequest
+import com.smartcampus.domain.models.common.PageRequestParams
+import com.smartcampus.domain.models.common.PaginatedResult
 
 interface WorkloadRepository {
     suspend fun getWorkloads(params: PageRequestParams): PaginatedResult<TeacherWorkloadDto>

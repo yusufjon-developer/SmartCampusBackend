@@ -1,7 +1,9 @@
 package com.smartcampus.data.repositories
 
 import com.smartcampus.data.dao.WorkloadExecutionDao
-import com.smartcampus.domain.models.*
+import com.smartcampus.domain.models.WorkloadExecutionCreateRequest
+import com.smartcampus.domain.models.WorkloadExecutionDto
+import com.smartcampus.domain.models.WorkloadExecutionUpdateRequest
 import com.smartcampus.domain.repositories.WorkloadExecutionRepository
 
 class WorkloadExecutionRepositoryImpl(private val dao: WorkloadExecutionDao) :

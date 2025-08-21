@@ -10,7 +10,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 fun ResultRow.toRoleResponse() = RoleResponse(
     id = this[RolesTable.id].value,
     name = this[RolesTable.name],
-    description = this[RolesTable.description]!!
+    description = this[RolesTable.description] ?: ""
 )
 
 fun ResultRow.toPermissionResponse(table: Alias<PermissionsTable>) = PermissionResponse(

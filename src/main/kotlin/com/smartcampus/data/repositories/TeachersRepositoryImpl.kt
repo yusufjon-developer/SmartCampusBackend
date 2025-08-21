@@ -1,7 +1,6 @@
 package com.smartcampus.data.repositories
 
 import com.smartcampus.data.dao.TeachersDao
-import com.smartcampus.domain.models.TeacherCreateRequest
 import com.smartcampus.domain.models.TeacherDetailsDto
 import com.smartcampus.domain.models.TeacherListItemDto
 import com.smartcampus.domain.models.TeacherUpdateRequest

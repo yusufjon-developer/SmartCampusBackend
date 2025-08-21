@@ -1,9 +1,9 @@
 package com.smartcampus.domain.repositories
 
-import com.smartcampus.domain.models.common.PageRequestParams
-import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.models.GradeCreateRequest
 import com.smartcampus.domain.models.GradeRecordDto
+import com.smartcampus.domain.models.common.PageRequestParams
+import com.smartcampus.domain.models.common.PaginatedResult
 
 interface GradesRepository {
     suspend fun addGrade(request: GradeCreateRequest): GradeRecordDto

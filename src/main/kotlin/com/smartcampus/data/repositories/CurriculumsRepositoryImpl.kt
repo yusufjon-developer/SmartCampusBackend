@@ -1,12 +1,12 @@
 package com.smartcampus.data.repositories
 
 import com.smartcampus.data.dao.CurriculumsDao
-import com.smartcampus.domain.models.common.PageRequestParams
-import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.models.CurriculumCreateRequest
 import com.smartcampus.domain.models.CurriculumDetailsDto
 import com.smartcampus.domain.models.CurriculumListItemDto
 import com.smartcampus.domain.models.CurriculumUpdateRequest
+import com.smartcampus.domain.models.common.PageRequestParams
+import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.repositories.CurriculumsRepository
 
 class CurriculumsRepositoryImpl(private val dao: CurriculumsDao) : CurriculumsRepository {

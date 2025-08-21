@@ -1,10 +1,10 @@
 package com.smartcampus.data.repositories
 
 import com.smartcampus.data.dao.GradesDao
-import com.smartcampus.domain.models.common.PageRequestParams
-import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.models.GradeCreateRequest
 import com.smartcampus.domain.models.GradeRecordDto
+import com.smartcampus.domain.models.common.PageRequestParams
+import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.repositories.GradesRepository
 
 class GradesRepositoryImpl(private val dao: GradesDao) : GradesRepository {
