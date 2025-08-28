@@ -5,14 +5,11 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.smartcampus.data.dao.SystemAdminDao
 import com.smartcampus.domain.security.models.JwtConfig
 import com.smartcampus.domain.security.models.UserSessionPrincipal
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.Application
-import io.ktor.server.application.install
-import io.ktor.server.application.log
-import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.jwt.jwt
-import io.ktor.server.response.respond
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
+import io.ktor.server.response.*
 import org.koin.ktor.ext.inject
 
 fun Application.configureSecurity() {

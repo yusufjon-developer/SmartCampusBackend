@@ -3,20 +3,13 @@ package com.smartcampus.features.systemAdmin
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.UpdatePermissionsRequest
 import com.smartcampus.features.common.getPageRequestParams
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.application.log
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.principal
-import io.ktor.server.request.ContentTransformationException
-import io.ktor.server.request.receive
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.application
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
 data class RawQueryPayload(val query: String)
 
@@ -190,6 +183,16 @@ fun Route.systemAdminRoutes(service: SystemAdminService) {
         }
 
         // --- User Permissions Endpoints ---
+        get("users") {
+            try {
+                val params = call.getPageRequestParams()
+                val users = service.getAllUsers(params)
+                call.respond(HttpStatusCode.OK, users)
+            } catch (e: Exception) {
+                call.handleAdminError(e, "get roles")
+            }
+        }
+
         get("/users/{userId}/permissions") {
             val targetUserId = call.parameters["userId"]?.toIntOrNull()
             if (targetUserId == null) {

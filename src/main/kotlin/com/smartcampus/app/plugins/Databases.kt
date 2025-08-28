@@ -2,9 +2,7 @@ package com.smartcampus.app.plugins
 
 import com.smartcampus.data.database.auth.SmartCampusAuthDb
 import com.smartcampus.data.database.smartCampus.SmartCampusDb
-import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationStopping
-import io.ktor.server.application.log
+import io.ktor.server.application.*
 import org.koin.ktor.ext.inject
 
 /**

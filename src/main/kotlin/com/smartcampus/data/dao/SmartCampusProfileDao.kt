@@ -1,11 +1,7 @@
 package com.smartcampus.data.dao
 
 import com.smartcampus.data.database.smartCampus.SmartCampusDb
-import com.smartcampus.data.database.smartCampus.entities.GroupsTable
-import com.smartcampus.data.database.smartCampus.entities.StudentsInfoTable
-import com.smartcampus.data.database.smartCampus.entities.StudentsTable
-import com.smartcampus.data.database.smartCampus.entities.TeachersInfoTable
-import com.smartcampus.data.database.smartCampus.entities.TeachersTable
+import com.smartcampus.data.database.smartCampus.entities.*
 import com.smartcampus.domain.models.auth.StudentCreateRequest
 import com.smartcampus.domain.models.auth.StudentInfoCreateRequest
 import com.smartcampus.domain.models.auth.TeacherCreateRequest

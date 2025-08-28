@@ -1,17 +1,10 @@
 package com.smartcampus.data.repositories
 
 import com.smartcampus.data.dao.SystemAdminDao
+import com.smartcampus.domain.models.UserDto
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
-import com.smartcampus.domain.models.systemAdmin.PermissionInfoForRoleDto
-import com.smartcampus.domain.models.systemAdmin.PermissionInfoForUserDto
-import com.smartcampus.domain.models.systemAdmin.PermissionResponse
-import com.smartcampus.domain.models.systemAdmin.PermissionSourceDto
-import com.smartcampus.domain.models.systemAdmin.RolePermissionDetailsDto
-import com.smartcampus.domain.models.systemAdmin.RoleRequest
-import com.smartcampus.domain.models.systemAdmin.RoleResponse
-import com.smartcampus.domain.models.systemAdmin.UpdatePermissionsRequest
-import com.smartcampus.domain.models.systemAdmin.UserPermissionDetailsDto
+import com.smartcampus.domain.models.systemAdmin.*
 import com.smartcampus.domain.repositories.SystemAdminRepository
 import org.slf4j.LoggerFactory
 import kotlin.math.ceil
@@ -156,6 +149,22 @@ class SystemAdminRepositoryImpl(
             return false
         }
         return dao.assignPermissionToRole(roleId, permissionId)
+    }
+
+    override suspend fun getUsers(params: PageRequestParams): PaginatedResult<UserDto> {
+        log.info("Fetching users with params: $params")
+        val items = dao.getAllUsers(params)
+        val totalItems = dao.countAllUsers()
+        val totalPages = if (totalItems == 0L || params.limit <= 0) 0 else ceil(totalItems.toDouble() / params.limit).toInt()
+
+        return PaginatedResult(
+            items = items,
+            totalItems = totalItems,
+            totalPages = totalPages,
+            currentPage = params.page,
+            pageSize = params.limit,
+            sortBy = params.sortBy
+        )
     }
 
     override suspend fun getUserPermissionsDetails(userId: Int): UserPermissionDetailsDto? {

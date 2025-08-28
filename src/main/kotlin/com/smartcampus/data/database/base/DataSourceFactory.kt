@@ -2,7 +2,7 @@ package com.smartcampus.data.database.base
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.*
 import org.slf4j.LoggerFactory
 
 class DataSourceFactory {

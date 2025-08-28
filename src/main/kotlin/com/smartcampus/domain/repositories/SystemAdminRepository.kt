@@ -1,13 +1,9 @@
 package com.smartcampus.domain.repositories
 
+import com.smartcampus.domain.models.UserDto
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
-import com.smartcampus.domain.models.systemAdmin.PermissionResponse
-import com.smartcampus.domain.models.systemAdmin.RolePermissionDetailsDto
-import com.smartcampus.domain.models.systemAdmin.RoleRequest
-import com.smartcampus.domain.models.systemAdmin.RoleResponse
-import com.smartcampus.domain.models.systemAdmin.UpdatePermissionsRequest
-import com.smartcampus.domain.models.systemAdmin.UserPermissionDetailsDto
+import com.smartcampus.domain.models.systemAdmin.*
 
 interface SystemAdminRepository {
     suspend fun getRoles(params: PageRequestParams): PaginatedResult<RoleResponse>
@@ -23,6 +19,7 @@ interface SystemAdminRepository {
     suspend fun getPermissions(params: PageRequestParams): PaginatedResult<PermissionResponse>
     suspend fun getPermissionsById(id: Int): PermissionResponse?
 
+    suspend fun getUsers(params: PageRequestParams): PaginatedResult<UserDto>
     suspend fun getUserPermissionsDetails(userId: Int): UserPermissionDetailsDto?
     suspend fun updateUserIndividualPermissions(
         targetUserId: Int,

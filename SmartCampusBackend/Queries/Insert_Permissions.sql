@@ -70,6 +70,8 @@ IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'teachers:update_own')
     INSERT INTO Permissions (name, description) VALUES ('teachers:update_own', N'Редактирование своего профиля преподавателя');
 IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'teachers:delete')
     INSERT INTO Permissions (name, description) VALUES ('teachers:delete', N'Удаление профилей преподавателей');
+IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'teachers:read_info')
+    INSERT INTO Permissions (name, description) VALUES ('teachers:read_info', N'Просмотр доп. информации о любом преподавателе');
 IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'teachers_info:update_all')
     INSERT INTO Permissions (name, description) VALUES ('teachers_info:update_all', N'Редактирование доп. информации о любом преподавателе');
 IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'teachers_info:update_own')
@@ -89,6 +91,8 @@ IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'students:update_own')
     INSERT INTO Permissions (name, description) VALUES ('students:update_own', N'Редактирование своего профиля студента');
 IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'students:delete')
     INSERT INTO Permissions (name, description) VALUES ('students:delete', N'Удаление профилей студентов');
+IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'students:read_info')
+    INSERT INTO Permissions (name, description) VALUES ('students:read_info', N'Просмотр доп. информации о любом студенте');
 IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'students_info:update_all')
     INSERT INTO Permissions (name, description) VALUES ('students_info:update_all', N'Редактирование доп. информации о любом студенте');
 IF NOT EXISTS (SELECT 1 FROM Permissions WHERE name = 'students_info:update_own')

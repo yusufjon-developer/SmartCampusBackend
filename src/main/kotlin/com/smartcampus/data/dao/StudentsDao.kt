@@ -2,12 +2,10 @@ package com.smartcampus.data.dao
 
 import com.smartcampus.data.database.smartCampus.SmartCampusDb
 import com.smartcampus.data.database.smartCampus.entities.GroupsTable
+import com.smartcampus.data.database.smartCampus.entities.SpecialitiesTable
 import com.smartcampus.data.database.smartCampus.entities.StudentsInfoTable
 import com.smartcampus.data.database.smartCampus.entities.StudentsTable
-import com.smartcampus.domain.models.StudentDetailsDto
-import com.smartcampus.domain.models.StudentListItemDto
-import com.smartcampus.domain.models.StudentSensitiveDto
-import com.smartcampus.domain.models.StudentUpdateRequest
+import com.smartcampus.domain.models.*
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
 import org.jetbrains.exposed.v1.core.Column
@@ -15,6 +13,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.leftJoin
 import org.jetbrains.exposed.v1.core.statements.api.ExposedBlob
 import org.jetbrains.exposed.v1.jdbc.*
 import org.slf4j.LoggerFactory
@@ -43,10 +42,14 @@ class StudentsDao(private val db: SmartCampusDb) {
     }
 
     suspend fun getStudents(params: PageRequestParams): PaginatedResult<StudentListItemDto> = db.query {
-        val rows = StudentsTable
-            .selectAll()
+        // Left join Groups and Specialities so we can return nested objects (group + speciality)
+        val baseQuery = StudentsTable
+            .leftJoin(GroupsTable, { StudentsTable.groupId }, { GroupsTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
+            .select(StudentsTable.columns + GroupsTable.columns + SpecialitiesTable.columns)
             .applyPaginationAndSorting(params, SortableFields.STUDENTS, StudentsTable.name)
-            .map { it.toStudentListItemDto() }
+
+        val rows = baseQuery.map { row -> row.toStudentListItemDto() }
 
         val totalItems = StudentsTable.selectAll().count()
         val totalPages = if (totalItems == 0L || params.limit <= 0) 0 else ceil(totalItems.toDouble() / params.limit).toInt()
@@ -61,14 +64,25 @@ class StudentsDao(private val db: SmartCampusDb) {
         )
     }
 
-    suspend fun getStudentById(id: Int, includeSensitive: Boolean = false): StudentDetailsDto? = db.query {
-        val row = StudentsTable.selectAll().where { StudentsTable.id eq id }.singleOrNull() ?: return@query null
-        val base = row.toStudentDetailsDto()
-        if (!includeSensitive) return@query base
+    suspend fun getStudentById(id: Int): StudentDetailsDto? = db.query {
+        val row = StudentsTable
+            .leftJoin(GroupsTable, { StudentsTable.groupId }, { GroupsTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
+            .select(StudentsTable.columns + GroupsTable.columns + SpecialitiesTable.columns)
+            .where { StudentsTable.id eq id }
+            .singleOrNull() ?: return@query null
 
-        val infoRow = StudentsInfoTable.selectAll().where { StudentsInfoTable.studentId eq id }.singleOrNull()
-        val sensitive = infoRow?.toStudentSensitiveDto()
-        base.copy(sensitive = sensitive)
+        // map to StudentDetailsDto WITHOUT sensitive
+        row.toStudentDetailsDto()
+    }
+
+    suspend fun getStudentSensitiveById(id: Int): StudentSensitiveDto? = db.query {
+        val infoRow = StudentsInfoTable
+            .selectAll()
+            .where { StudentsInfoTable.studentId eq id }
+            .singleOrNull() ?: return@query null
+
+        infoRow.toStudentSensitiveDto()
     }
 
     suspend fun updateStudent(id: Int, request: StudentUpdateRequest, performingUserId: Int): StudentDetailsDto? = db.query {
@@ -78,10 +92,9 @@ class StudentsDao(private val db: SmartCampusDb) {
             request.surname?.let { v -> it[StudentsTable.surname] = v }
             request.name?.let { v -> it[StudentsTable.name] = v }
             request.lastname?.let { v -> it[StudentsTable.lastname] = v }
-            if (request.birthday != null) it[StudentsTable.birthday] = LocalDate.parse(request.birthday) else if (request.birthday == null) { /* keep as-is if not provided */ }
+            if (request.birthday != null) it[StudentsTable.birthday] = LocalDate.parse(request.birthday) else if (request.birthday == null) { /* keep as-is */ }
             // groupId is reference -> need EntityID
-            if (request.groupId != null) it[StudentsTable.groupId] =
-                EntityID(request.groupId, GroupsTable)
+            if (request.groupId != null) it[StudentsTable.groupId] = EntityID(request.groupId, GroupsTable)
             request.phoneNumber?.let { v -> it[StudentsTable.phoneNumber] = v }
             if (request.photo != null) it[StudentsTable.photo] = ExposedBlob(request.photo)
         }
@@ -131,11 +144,15 @@ class StudentsDao(private val db: SmartCampusDb) {
 
         log.info("Student $id updated by user $performingUserId")
         // Return fresh details including sensitive info (if exists)
-        val rowAfter = StudentsTable.selectAll().where { StudentsTable.id eq id }.singleOrNull() ?: return@query null
+        val rowAfter = StudentsTable
+            .leftJoin(GroupsTable, { StudentsTable.groupId }, { GroupsTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
+            .select(StudentsTable.columns + GroupsTable.columns + SpecialitiesTable.columns)
+            .where { StudentsTable.id eq id }
+            .singleOrNull() ?: return@query null
+
         val base = rowAfter.toStudentDetailsDto()
-        val infoRow = StudentsInfoTable.selectAll().where { StudentsInfoTable.studentId eq id }.singleOrNull()
-        val sensitive = infoRow?.toStudentSensitiveDto()
-        base.copy(sensitive = sensitive)
+        base
     }
 
     suspend fun deleteStudent(id: Int): Boolean = db.query {
@@ -144,7 +161,10 @@ class StudentsDao(private val db: SmartCampusDb) {
         deleted
     }
 
-    // mappers (reuse from previous snippet)
+    // -------------------
+    // mappers
+    // -------------------
+
     private fun ResultRow.toStudentListItemDto(): StudentListItemDto =
         StudentListItemDto(
             id = this[StudentsTable.id].value,
@@ -152,7 +172,7 @@ class StudentsDao(private val db: SmartCampusDb) {
             name = this[StudentsTable.name],
             lastname = this[StudentsTable.lastname],
             birthday = this[StudentsTable.birthday]?.toString(),
-            groupId = this[StudentsTable.groupId]?.value,
+            group = this.toGroupDto(),
             phoneNumber = this[StudentsTable.phoneNumber]
         )
 
@@ -163,10 +183,29 @@ class StudentsDao(private val db: SmartCampusDb) {
             name = this[StudentsTable.name],
             lastname = this[StudentsTable.lastname],
             birthday = this[StudentsTable.birthday]?.toString(),
-            groupId = this[StudentsTable.groupId]?.value,
-            phoneNumber = this[StudentsTable.phoneNumber],
-            sensitive = null
+            group = this.toGroupDto(),
+            phoneNumber = this[StudentsTable.phoneNumber]
         )
+
+    private fun ResultRow.toGroupDto(): GroupDto? {
+        // Use runCatching to safely read left-joined columns (they may be absent -> return null)
+        val gId = runCatching { this[GroupsTable.id].value }.getOrNull() ?: return null
+        val gName = runCatching { this[GroupsTable.name] }.getOrNull()
+        val gCourse = runCatching { this[GroupsTable.course] }.getOrNull()
+        val specId = runCatching { this[GroupsTable.specId]?.value }.getOrNull()
+
+        val speciality = specId?.let {
+            val sName = runCatching { this[SpecialitiesTable.name] }.getOrNull()
+            SpecialityDto(it, sName)
+        }
+
+        return GroupDto(
+            id = gId,
+            name = gName,
+            course = gCourse,
+            speciality = speciality
+        )
+    }
 
     private fun ResultRow.toStudentSensitiveDto() =
         StudentSensitiveDto(

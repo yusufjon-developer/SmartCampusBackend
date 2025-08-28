@@ -8,16 +8,14 @@ import com.smartcampus.features.students.StudentsService
 import com.smartcampus.features.students.studentsRoutes
 import com.smartcampus.features.systemAdmin.SystemAdminService
 import com.smartcampus.features.systemAdmin.systemAdminRoutes
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.Application
-import io.ktor.server.application.log
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.principal
-import io.ktor.server.response.respond
-import io.ktor.server.routing.get
-import io.ktor.server.routing.route
-import io.ktor.server.routing.routing
-import io.ktor.util.AttributeKey
+import com.smartcampus.features.teachers.TeachersService
+import com.smartcampus.features.teachers.teachersRoutes
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.util.*
 import org.koin.ktor.ext.inject
 
 private val AccessControlKey = AttributeKey<AccessControlService>("AccessControlService")
@@ -32,6 +30,7 @@ fun Application.configureRouting() {
     val authService by inject<AuthService>()
     val systemAdminService by inject<SystemAdminService>()
     val studentsService by inject<StudentsService>()
+    val teachersService by inject<TeachersService>()
 
     attributes.put(AccessControlKey, accessControlService)
 
@@ -66,6 +65,7 @@ fun Application.configureRouting() {
 
             // ваши реальные маршруты
             studentsRoutes(studentsService)
+            teachersRoutes(teachersService)
         }
 
 

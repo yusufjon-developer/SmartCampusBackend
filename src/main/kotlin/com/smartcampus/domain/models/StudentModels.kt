@@ -9,7 +9,7 @@ data class StudentListItemDto(
     val name: String? = null,
     val lastname: String? = null,
     val birthday: String? = null, // ISO date
-    val groupId: Int? = null,
+    val group: GroupDto? = null,
     val phoneNumber: String? = null
 )
 
@@ -39,9 +39,8 @@ data class StudentDetailsDto(
     val name: String? = null,
     val lastname: String? = null,
     val birthday: String? = null,
-    val groupId: Int? = null,
+    val group: GroupDto? = null,
     val phoneNumber: String? = null,
-    val sensitive: StudentSensitiveDto? = null
 )
 
 @Serializable
@@ -85,4 +84,17 @@ data class StudentUpdateRequest(
     val info: StudentSensitiveUpdateRequest? = null
 )
 
+@Serializable
+data class SpecialityDto(
+    val id: Int,
+    val name: String? = null
+)
+
+@Serializable
+data class GroupDto(
+    val id: Int,
+    val name: String? = null,
+    val course: Int? = null,
+    val speciality: SpecialityDto? = null
+)
 

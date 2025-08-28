@@ -2,7 +2,7 @@ package com.smartcampus.data.database.auth
 
 import com.smartcampus.data.database.base.DataSourceFactory
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.*
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.v1.core.DatabaseConfig
 import org.jetbrains.exposed.v1.jdbc.Database

@@ -3,7 +3,7 @@ package com.smartcampus.domain.security
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.smartcampus.domain.security.models.JwtConfig
-import java.util.Date
+import java.util.*
 
 class TokenUtils(private val config: JwtConfig) {
 

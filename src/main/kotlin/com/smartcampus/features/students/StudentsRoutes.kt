@@ -7,12 +7,11 @@ import com.smartcampus.domain.models.StudentUpdateRequest
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.security.models.Permissions
 import com.smartcampus.domain.security.models.UserSessionPrincipal
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.principal
-import io.ktor.server.request.receive
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.route
+import io.ktor.http.*
+import io.ktor.server.auth.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
 fun Route.studentsRoutes(service: StudentsService) {
 
@@ -36,6 +35,21 @@ fun Route.studentsRoutes(service: StudentsService) {
             if (student != null) call.respond(student) else call.respond(HttpStatusCode.NotFound, "Student not found")
         }
 
+        getWithAccess("{id}/info", Permissions.STUDENTS_READ_INFO) {
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null) {
+                call.respond(HttpStatusCode.BadRequest, "Invalid student id")
+                return@getWithAccess
+            }
+            val sensitive = service.getStudentSensitiveInfo(id)
+            if (sensitive != null) {
+                call.respond(sensitive)
+            } else {
+                call.respond(HttpStatusCode.NotFound, "Student sensitive info not found")
+            }
+        }
+
+
         putWithAccess("{id}", Permissions.STUDENTS_UPDATE_ALL, Permissions.STUDENTS_UPDATE_OWN) {
             val id = call.parameters["id"]?.toIntOrNull()
             if (id == null) {
@@ -53,7 +67,6 @@ fun Route.studentsRoutes(service: StudentsService) {
             if (deleted) call.respond("Student deleted") else call.respond(HttpStatusCode.NotFound, "Student not found")
         }
     }
-
 
 }
 

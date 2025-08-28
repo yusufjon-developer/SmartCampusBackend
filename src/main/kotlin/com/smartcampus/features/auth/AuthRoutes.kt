@@ -6,21 +6,17 @@ import com.smartcampus.domain.models.employee.EmployeeSignInRequest
 import com.smartcampus.domain.models.student.StudentSignInRequest
 import com.smartcampus.domain.security.models.Permissions
 import com.smartcampus.domain.utils.Either
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.log
-import io.ktor.server.auth.authenticate
-import io.ktor.server.request.ContentTransformationException
-import io.ktor.server.request.receive
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.application
-import io.ktor.server.routing.get
-import io.ktor.server.routing.route
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
 fun Route.authRoutes(authService: AuthService) {
 
     route("/auth") {
-        get("/student/signin") {
+        post("/student/signin") {
             try {
                 val request = call.receive<StudentSignInRequest>()
                 val response = authService.signInStudent(request)
@@ -57,7 +53,6 @@ fun Route.authRoutes(authService: AuthService) {
 
         authenticate("auth-jwt") {
             postWithAccess("/student/signup", Permissions.STUDENTS_CREATE) {
-
                 try {
                     val request = call.receive<RegisterRequest>()
                     when (val res = authService.register(request)) {
@@ -85,7 +80,7 @@ fun Route.authRoutes(authService: AuthService) {
     }
 
     route("/crm/auth") {
-        get("/employee/signin") {
+        post("/employee/signin") {
             try {
                 val request = call.receive<EmployeeSignInRequest>()
                 val response = authService.signInEmployee(request)

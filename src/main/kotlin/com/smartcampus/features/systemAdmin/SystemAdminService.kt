@@ -1,15 +1,11 @@
 package com.smartcampus.features.systemAdmin
 
+import com.smartcampus.domain.models.UserDto
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
-import com.smartcampus.domain.models.systemAdmin.PermissionResponse
-import com.smartcampus.domain.models.systemAdmin.RolePermissionDetailsDto
-import com.smartcampus.domain.models.systemAdmin.RoleRequest
-import com.smartcampus.domain.models.systemAdmin.RoleResponse
-import com.smartcampus.domain.models.systemAdmin.UpdatePermissionsRequest
-import com.smartcampus.domain.models.systemAdmin.UserPermissionDetailsDto
+import com.smartcampus.domain.models.systemAdmin.*
 import com.smartcampus.domain.repositories.SystemAdminRepository
-import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.jwt.*
 import org.slf4j.LoggerFactory
 
 class SystemAdminService(
@@ -75,50 +71,10 @@ class SystemAdminService(
             ?: throw NoSuchElementException("Permission with id $permissionId not found.")
     }
 
-    suspend fun assignPermissionToRole(roleId: Int, permissionId: Int) {
-        log.info("Service: Assigning permission $permissionId to role $roleId.")
-
-        // 1. Проверить, существует ли роль
-        repository.getRoleById(roleId)
-            ?: throw NoSuchElementException("Role with id $roleId not found. Cannot assign permission.")
-
-        // 2. Проверить, существует ли разрешение
-        repository.getPermissionsById(permissionId)
-            ?: throw NoSuchElementException("Permission with id $permissionId not found. Cannot assign to role.")
-
-        // 3. Попытаться добавить связь (репозиторий должен быть идемпотентным или обрабатывать дубликаты)
-        val success = repository.assignPermissionToRole(roleId, permissionId)
-        if (!success) {
-            // Если репозиторий возвращает false при существующей связи, это нормально.
-            // Если он возвращает false по другой причине (например, внутренняя ошибка БД),
-            // то это уже проблема. Для учебного проекта можно предположить,
-            // что false здесь означает, что связь УЖЕ СУЩЕСТВОВАЛА и не была создана заново,
-            // либо возникла другая проблема, не связанная с отсутствием роли/разрешения (они проверены).
-            // Для большей точности, метод репозитория assignPermissionToRole мог бы возвращать
-            // enum или код результата (CREATED, ALREADY_EXISTS, FAILED_OTHER).
-            // AccessControlService текущей реализации с boolean:
-            log.warn("repository.assignPermissionToRole returned false for role $roleId, permission $permissionId. This might indicate the link already exists or an issue if the DB doesn't handle duplicates gracefully.")
-            // Можно не кидать исключение, если "уже существует" - это не ошибка для вас.
-            // Если же вы хотите, чтобы метод был строгим и падал, если связь уже есть:
-            // (потребовался бы метод repository.rolePermissionLinkExists(roleId, permissionId))
-            // if (repository.rolePermissionLinkExists(roleId, permissionId)) {
-            //     throw IllegalStateException("Permission $permissionId is already assigned to role $roleId.")
-            // } else {
-            //     throw IllegalStateException("Failed to assign permission $permissionId to role $roleId due to an unexpected issue after checks.")
-            // }
-            // Для упрощения, если repository.assignPermissionToRole кидает исключение при дубликате (например, PK violation),
-            // то этот блок if(!success) может не понадобиться или будет обрабатывать другие редкие случаи.
-            // Если ваш DAO.assignPermissionToRole уже обрабатывает дубликаты и возвращает true/false
-            // (false если дубликат), то здесь можно ничего не делать или логировать.
-            // Если DAO просто делает INSERT и полагается на исключение БД при дубликате, то
-            // Ktor StatusPages или try-catch в роуте поймают это исключение (часто PSQLException или аналог).
-            // Давайте предположим, что repository.assignPermissionToRole возвращает false, если связь не была СОЗДАНА (т.е. уже есть или ошибка)
-            // И мы хотим быть строгими: если не создана, и это не из-за отсутствия роли/права (проверили), то это проблема.
-            throw IllegalStateException("Failed to create the link between role $roleId and permission $permissionId. The link might already exist or another issue occurred.")
-        }
-        log.info("Successfully assigned permission $permissionId to role $roleId.")
+    suspend fun getAllUsers(params: PageRequestParams): PaginatedResult<UserDto> {
+        log.info("Service: Fetching all users.")
+        return repository.getUsers(params)
     }
-
     suspend fun getUserPermissionsDetails(userId: Int): UserPermissionDetailsDto {
         log.debug("Service: Fetching permission details for user $userId.")
         return repository.getUserPermissionsDetails(userId)

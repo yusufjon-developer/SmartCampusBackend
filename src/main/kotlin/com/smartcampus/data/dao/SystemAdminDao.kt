@@ -1,30 +1,18 @@
 package com.smartcampus.data.dao
 
 import com.smartcampus.data.database.auth.SmartCampusAuthDb
-import com.smartcampus.data.database.auth.entities.AccessGrantsTable
-import com.smartcampus.data.database.auth.entities.PermissionsTable
-import com.smartcampus.data.database.auth.entities.RolePermissionsTable
-import com.smartcampus.data.database.auth.entities.RolesTable
-import com.smartcampus.data.database.auth.entities.UsersTable
+import com.smartcampus.data.database.auth.entities.*
 import com.smartcampus.data.utils.toPermissionResponse
 import com.smartcampus.data.utils.toRoleResponse
+import com.smartcampus.domain.models.UserDto
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
-import org.jetbrains.exposed.v1.core.Column
-import org.jetbrains.exposed.v1.core.JoinType
-import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.core.alias
-import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.statements.api.ExposedBlob
-import org.jetbrains.exposed.v1.jdbc.Query
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.insertAndGetId
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 
 class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
@@ -40,6 +28,11 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
             "name" to PermissionsTable.name,
             "description" to PermissionsTable.description
         )
+        val USERS: Map<String, Column<*>> = mapOf(
+            "id" to UsersTable.id,
+            "username" to UsersTable.username
+        )
+
     }
 
     private fun Query.applyPaginationAndSorting(
@@ -158,6 +151,24 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
         RolePermissionsTable.deleteWhere {
             (RolePermissionsTable.roleId eq roleId) and (RolePermissionsTable.permissionId eq permissionId)
         } > 0
+    }
+
+    // Ниже остальных методов в SystemAdminDao добавь:
+
+    suspend fun getAllUsers(params: PageRequestParams): List<UserDto> = authDb.query {
+        UsersTable
+            .selectAll()
+            .applyPaginationAndSorting(params, SortableFields.USERS, UsersTable.username)
+            .map { row ->
+                UserDto( // <- если пакет другой — поправь
+                    id = row[UsersTable.id].value,
+                    name = row[UsersTable.fullName] ?: row[UsersTable.username]
+                )
+            }
+    }
+
+    suspend fun countAllUsers(): Long = authDb.query {
+        UsersTable.selectAll().count()
     }
 
     suspend fun getUserInfoById(userId: Int): Triple<String, Int, Int?>? = authDb.query {

@@ -2,6 +2,7 @@ package com.smartcampus.features.students
 
 import com.smartcampus.domain.models.StudentDetailsDto
 import com.smartcampus.domain.models.StudentListItemDto
+import com.smartcampus.domain.models.StudentSensitiveDto
 import com.smartcampus.domain.models.StudentUpdateRequest
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
@@ -18,9 +19,14 @@ class StudentsService(
         return repository.getStudents(params)
     }
 
-    suspend fun getStudentById(id: Int, includeSensitive: Boolean = false): StudentDetailsDto? {
-        log.debug("Fetching student by id={}, includeSensitive={}", id, includeSensitive)
-        return repository.getStudentById(id, includeSensitive)
+    suspend fun getStudentById(id: Int): StudentDetailsDto? {
+        log.debug("Fetching student by id={}", id)
+        return repository.getStudentById(id)
+    }
+
+    suspend fun getStudentSensitiveInfo(id: Int): StudentSensitiveDto? {
+        log.debug("Fetching sensitive info for student id={}", id)
+        return repository.getStudentSensitiveById(id)
     }
 
     suspend fun updateStudent(

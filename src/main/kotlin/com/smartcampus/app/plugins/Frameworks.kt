@@ -4,8 +4,7 @@ import com.smartcampus.di.appModule
 import com.smartcampus.di.coreModule
 import com.smartcampus.di.dataModule
 import com.smartcampus.di.featureModule
-import io.ktor.server.application.Application
-import io.ktor.server.application.install
+import io.ktor.server.application.*
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 

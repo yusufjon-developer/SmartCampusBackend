@@ -1,13 +1,8 @@
 package com.smartcampus.app.utils
 
 import com.smartcampus.app.plugins.accessControlService
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.RoutingContext
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
+import io.ktor.server.application.*
+import io.ktor.server.routing.*
 
 /**
  * Проверить доступ в рамках текущего вызова (ApplicationCall).

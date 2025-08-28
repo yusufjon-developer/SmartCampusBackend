@@ -2,11 +2,11 @@ package com.smartcampus.domain.security
 
 import com.smartcampus.data.dao.SystemAdminDao
 import com.smartcampus.domain.security.models.UserSessionPrincipal
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.auth.principal
-import io.ktor.server.request.uri
-import io.ktor.server.response.respond
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
 import org.slf4j.LoggerFactory
 
 class AccessControlService(private val systemAdminDao: SystemAdminDao) {

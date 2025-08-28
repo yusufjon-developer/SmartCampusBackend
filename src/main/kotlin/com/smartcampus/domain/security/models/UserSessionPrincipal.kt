@@ -1,6 +1,6 @@
 package com.smartcampus.domain.security.models
 
-import io.ktor.server.auth.Principal
+import io.ktor.server.auth.*
 
 data class UserSessionPrincipal(
     val userId: Int,
