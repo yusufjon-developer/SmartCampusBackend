@@ -1,9 +1,15 @@
 package com.smartcampus.features.systemAdmin
 
+import com.smartcampus.domain.models.UpdatePermissionsRequest
+import com.smartcampus.domain.models.UpdateUserRequest
 import com.smartcampus.domain.models.UserDto
+import com.smartcampus.domain.models.UserPermissionDetailsDto
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
-import com.smartcampus.domain.models.systemAdmin.*
+import com.smartcampus.domain.models.systemAdmin.PermissionResponse
+import com.smartcampus.domain.models.systemAdmin.RolePermissionDetailsDto
+import com.smartcampus.domain.models.systemAdmin.RoleRequest
+import com.smartcampus.domain.models.systemAdmin.RoleResponse
 import com.smartcampus.domain.repositories.SystemAdminRepository
 import io.ktor.server.auth.jwt.*
 import org.slf4j.LoggerFactory
@@ -81,52 +87,25 @@ class SystemAdminService(
             ?: throw NoSuchElementException("User with ID $userId not found or details could not be retrieved.")
     }
 
-    suspend fun updateUserIndividualPermissions(targetUserId: Int, request: UpdatePermissionsRequest, performingAdminPrincipal: JWTPrincipal) {
+    suspend fun updateUserComposite(userId: Int, request: UpdateUserRequest, performingAdminPrincipal: JWTPrincipal) {
         val performingAdminId = performingAdminPrincipal.payload.getClaim("userId").asInt()
             ?: throw IllegalStateException("Performing admin User ID not found in JWT principal.")
-        val performingAdminUsername = performingAdminPrincipal.payload.getClaim("username").asString()
-            ?: "UnknownAdmin"
+        val performingAdminUsername = performingAdminPrincipal.payload.getClaim("username").asString() ?: "UnknownAdmin"
 
-        log.info("Service: Admin '$performingAdminUsername' (ID: $performingAdminId) is attempting to update individual permissions for user ID: $targetUserId. Request: $request")
+        log.info("Service: Admin '$performingAdminUsername' (ID: $performingAdminId) updates user $userId with $request")
 
-        if (targetUserId == performingAdminId) {
-            // Предосторожность: админ пытается отозвать права у самого себя.
-            // Можно добавить более сложную логику, если есть критичные "само-админские" права.
-            log.warn("Service: Admin '$performingAdminUsername' is attempting to modify their own individual permissions. Proceeding with caution.")
-        }
+        val success = repository.updateUserComposite(
+            userId = userId,
+            isActive = request.isActive,
+            deviceId = request.deviceId,
+            permissionsReq = request.updatePermissionsRequest,
+            performingAdminId = performingAdminId
+        )
 
-        // Дополнительные бизнес-проверки можно добавить здесь, если необходимо
-        // Например, не позволять отзывать определенные базовые разрешения и т.д.
-
-        val success = repository.updateUserIndividualPermissions(targetUserId, request, performingAdminId)
         if (!success) {
-            // Репозиторий вернет false, если, например, не удалось выдать какое-то право из-за его отсутствия
-            // или если целевой пользователь не найден (хотя это проверяется в репозитории).
-            throw IllegalStateException("Failed to update one or more individual permissions for user $targetUserId. Check logs for details.")
+            // Можно выбросить конкретное исключение для маршрута (например IllegalArgumentException / IllegalStateException)
+            throw IllegalStateException("Failed to apply one or more updates for user $userId (user missing, device mismatch or permission error).")
         }
-        log.info("Service: Successfully initiated update for individual permissions for user $targetUserId by admin '$performingAdminUsername'.")
-    }
-
-    suspend fun revokePermissionFromRole(roleId: Int, permissionId: Int) {
-        log.info("Service: Revoking permission $permissionId from role $roleId.")
-
-        // 1. Проверить, существует ли роль (опционально, но хорошо для консистентности)
-        repository.getRoleById(roleId)
-            ?: throw NoSuchElementException("Role with id $roleId not found. Cannot revoke permission.")
-
-        // 2. Проверить, существует ли разрешение (опционально)
-        repository.getPermissionsById(permissionId)
-            ?: throw NoSuchElementException("Permission with id $permissionId not found. Cannot revoke from role.")
-
-        // 3. Попытаться удалить связь
-        val success = repository.revokePermissionFromRole(roleId, permissionId)
-        if (!success) {
-            // Если success = false, это означает, что связь не была найдена для удаления.
-            // Это не обязательно ошибка, если операция идемпотентна.
-            // Но для учебного проекта, если мы хотим быть строгими и сообщать, что ничего не было удалено:
-            throw NoSuchElementException("Link between role $roleId and permission $permissionId not found. Nothing to revoke.")
-        }
-        log.info("Successfully revoked permission $permissionId from role $roleId.")
     }
 
     // --- Raw SQL Query ---

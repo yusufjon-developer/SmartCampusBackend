@@ -4,6 +4,8 @@ import com.smartcampus.data.database.auth.SmartCampusAuthDb
 import com.smartcampus.data.database.auth.entities.*
 import com.smartcampus.data.utils.toPermissionResponse
 import com.smartcampus.data.utils.toRoleResponse
+import com.smartcampus.domain.models.UpdatePermissionsRequest
+import com.smartcampus.domain.models.UserDevice
 import com.smartcampus.domain.models.UserDto
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.systemAdmin.PermissionResponse
@@ -11,7 +13,9 @@ import com.smartcampus.domain.models.systemAdmin.RoleRequest
 import com.smartcampus.domain.models.systemAdmin.RoleResponse
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.statements.api.ExposedBlob
+import org.jetbrains.exposed.v1.javatime.CurrentDateTime
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 
@@ -171,14 +175,141 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
         UsersTable.selectAll().count()
     }
 
-    suspend fun getUserInfoById(userId: Int): Triple<String, Int, Int?>? = authDb.query {
+    suspend fun getUserDevicesById(userId: Int): List<UserDevice> = authDb.query {
+        UserDevicesTable
+            .selectAll()
+            .where { UserDevicesTable.userId eq userId }
+            .map { row ->
+                UserDevice(
+                    id = row[UserDevicesTable.id].value,
+                    deviceUuid = row[UserDevicesTable.deviceUuid],
+                    isApprove = row[UserDevicesTable.isApproved],
+                    description = row[UserDevicesTable.description],
+                    lastLoginAt = row[UserDevicesTable.lastLoginAt].toString(),
+                    registeredAt = row[UserDevicesTable.registeredAt].toString(),
+                    approvedAt = row[UserDevicesTable.approvedAt].toString(),
+                    approvedBy = row[UserDevicesTable.approvedBy]?.value,
+                )
+            }
+    }
+
+    suspend fun updateUserComposite(
+        userId: Int,
+        isActive: Boolean?,
+        deviceId: MutableSet<Int>?,
+        permissionsReq: UpdatePermissionsRequest?,
+        performingAdminId: Int
+    ): Boolean = authDb.query {
+        // Проверка существования пользователя
+        val userRow = UsersTable.selectAll().where { UsersTable.id eq userId }.singleOrNull()
+        if (userRow == null) {
+            // user not found
+            return@query false
+        }
+
+        var allSucceeded = true
+
+        // 1) Обновление is_active (если передали)
+        if (isActive != null) {
+            val updated = UsersTable.update({ UsersTable.id eq userId }) {
+                it[UsersTable.isActive] = isActive
+            }
+            if (updated <= 0) allSucceeded = false
+        }
+
+        // 2) Device: проверяем принадлежит ли устройство пользователю, и обновляем approval
+        if (deviceId == null) {
+            // снять approve у всех устройств пользователя
+            UserDevicesTable.update({ UserDevicesTable.userId eq userId }) {
+                it[UserDevicesTable.isApproved] = false
+                it[UserDevicesTable.approvedAt] = null
+                it[UserDevicesTable.approvedBy] = null
+            }
+        } else {
+            // проверим, принадлежит ли указанное устройство пользователю
+            deviceId.forEach { id ->
+                val deviceRow = UserDevicesTable
+                    .selectAll().where { (UserDevicesTable.id eq id) and (UserDevicesTable.userId eq userId) }
+                    .singleOrNull()
+                if (deviceRow == null) {
+                    deviceId.remove(id)
+                }
+            }
+
+            // сначала снять approve у всех устройств пользователя
+            UserDevicesTable.update({ UserDevicesTable.userId eq userId }) {
+                it[UserDevicesTable.isApproved] = false
+                it[UserDevicesTable.approvedAt] = null
+                it[UserDevicesTable.approvedBy] = null
+            }
+
+            // затем одобрить нужное
+            deviceId.forEach { id ->
+                val updated = UserDevicesTable.update({ UserDevicesTable.id eq id }) {
+                    it[UserDevicesTable.isApproved] = true
+                    it[UserDevicesTable.approvedAt] = CurrentDateTime
+                    it[UserDevicesTable.approvedBy] = EntityID(performingAdminId, UsersTable)
+                }
+                if (updated <= 0) allSucceeded = false
+            }
+        }
+
+        // 3) Permissions: grant/revoke индивидуальных прав
+        if (permissionsReq != null) {
+            // grants
+            for (permId in permissionsReq.grantPermissionIds.distinct()) {
+                // проверим что permission существует
+                val permExists = PermissionsTable.selectAll().where { PermissionsTable.id eq permId }.singleOrNull() != null
+                if (!permExists) {
+                    allSucceeded = false
+                    continue
+                }
+
+                // проверим есть ли уже грант
+                val existsGrant = AccessGrantsTable
+                    .selectAll().where {
+                        (AccessGrantsTable.grantedTo eq userId) and (AccessGrantsTable.permissionId eq permId)
+                    }
+                    .singleOrNull() != null
+
+                if (!existsGrant) {
+                    try {
+                        AccessGrantsTable.insert {
+                            it[AccessGrantsTable.grantedTo] = userId
+                            it[AccessGrantsTable.permissionId] = permId
+                            it[AccessGrantsTable.grantedBy] = EntityID(performingAdminId, UsersTable)
+                            it[AccessGrantsTable.grantDate] = CurrentDateTime
+                        }
+                    } catch (_: Exception) {
+                        allSucceeded = false
+                    }
+                }
+            }
+
+            // revokes
+            for (permId in permissionsReq.revokePermissionIds.distinct()) {
+                try {
+                    AccessGrantsTable.deleteWhere {
+                        (AccessGrantsTable.grantedTo eq userId) and (AccessGrantsTable.permissionId eq permId)
+                    }
+                } catch (_: Exception) {
+                    allSucceeded = false
+                }
+            }
+        }
+
+        allSucceeded
+    }
+
+
+    suspend fun getUserInfoById(userId: Int): Triple<String, Boolean, Int?>? = authDb.query {
         UsersTable
-            .select(UsersTable.username, UsersTable.id, UsersTable.roleId)
+            .select(UsersTable.username, UsersTable.isActive, UsersTable.roleId)
             .where { UsersTable.id eq userId }
             .map {
                 Triple(
                     it[UsersTable.username],
-                    it[UsersTable.id].value,
+                    it[UsersTable.isActive],
                     it[UsersTable.roleId]?.value
                 )
             }
@@ -203,41 +334,6 @@ class SystemAdminDao(private val authDb: SmartCampusAuthDb) {
                 .map { it[PermissionsTable.name] }
                 .toSet()
         }
-    }
-
-    suspend fun grantIndividualPermissionToUser(
-        grantedToUserId: Int,
-        permissionId: Int,
-        grantedByUserId: Int
-    ): Boolean = authDb.query {
-        try {
-            val existingGrantCount = AccessGrantsTable
-                .selectAll()
-                .where { (AccessGrantsTable.grantedTo eq grantedToUserId) and (AccessGrantsTable.permissionId eq permissionId) }
-                .count()
-
-            if (existingGrantCount > 0) {
-                return@query true
-            }
-
-            AccessGrantsTable.insert {
-                it[AccessGrantsTable.grantedTo] = grantedToUserId
-                it[AccessGrantsTable.permissionId] = permissionId
-                it[AccessGrantsTable.grantedBy] = grantedByUserId
-            }
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    suspend fun revokeIndividualPermissionFromUser(
-        grantedToUserId: Int,
-        permissionId: Int
-    ): Boolean = authDb.query {
-        AccessGrantsTable.deleteWhere {
-            (AccessGrantsTable.grantedTo eq grantedToUserId) and (AccessGrantsTable.permissionId eq permissionId)
-        } > 0
     }
 
     suspend fun getAllPermissionDefinitions(): List<PermissionResponse> = authDb.query {

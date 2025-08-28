@@ -1,7 +1,8 @@
 package com.smartcampus.features.systemAdmin
 
+import com.smartcampus.domain.models.UpdatePermissionsRequest
+import com.smartcampus.domain.models.UpdateUserRequest
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
-import com.smartcampus.domain.models.systemAdmin.UpdatePermissionsRequest
 import com.smartcampus.features.common.getPageRequestParams
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -193,7 +194,7 @@ fun Route.systemAdminRoutes(service: SystemAdminService) {
             }
         }
 
-        get("/users/{userId}/permissions") {
+        get("/users/{userId}") {
             val targetUserId = call.parameters["userId"]?.toIntOrNull()
             if (targetUserId == null) {
                 call.respond(
@@ -210,38 +211,30 @@ fun Route.systemAdminRoutes(service: SystemAdminService) {
             }
         }
 
-        post("/users/{userId}/permissions") {
-            val targetUserId = call.parameters["userId"]?.toIntOrNull()
+        put("/users/{id}") {
+            val userId = call.parameters["id"]?.toIntOrNull()
             val principal = call.principal<JWTPrincipal>()
-
-            if (targetUserId == null) {
-                call.respond(
-                    HttpStatusCode.BadRequest,
-                    mapOf("error" to "Invalid target User ID format.")
-                )
-                return@post
+            if (userId == null) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid user id"))
+                return@put
             }
             if (principal == null) {
-                application.log.error("CRITICAL: Principal is null within auth-jwt-admin block for POST /users/{userId}/permissions.")
-                call.respond(
-                    HttpStatusCode.InternalServerError,
-                    mapOf("error" to "Internal authentication error: Principal not found.")
-                )
-                return@post
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Internal authentication error: Principal not found."))
+                return@put
             }
 
             try {
-                val request = call.receive<UpdatePermissionsRequest>()
-                service.updateUserIndividualPermissions(targetUserId, request, principal)
-                val updated = service.getUserPermissionsDetails(targetUserId)
+                val request = call.receive<UpdateUserRequest>()
+                service.updateUserComposite(userId, request, principal)
+
+                // вернём актуальные детали пользователя (permissions + devices)
+                val updated = service.getUserPermissionsDetails(userId)
                 call.respond(HttpStatusCode.OK, updated)
             } catch (e: Exception) {
-                call.handleAdminError(
-                    e,
-                    "update user individual permissions for user $targetUserId"
-                )
+                call.handleAdminError(e, "update user $userId")
             }
         }
+
 
         // --- Raw SQL Query Endpoint ---
         // Он также будет защищен `auth-jwt-admin`, так что пользователь УЖЕ будет SystemAdmin.
