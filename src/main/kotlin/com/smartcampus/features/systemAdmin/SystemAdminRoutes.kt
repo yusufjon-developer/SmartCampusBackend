@@ -1,5 +1,6 @@
 package com.smartcampus.features.systemAdmin
 
+import com.smartcampus.domain.models.RawQueryPayload
 import com.smartcampus.domain.models.UpdatePermissionsRequest
 import com.smartcampus.domain.models.UpdateUserRequest
 import com.smartcampus.domain.models.systemAdmin.RoleRequest
@@ -11,8 +12,6 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-
-data class RawQueryPayload(val query: String)
 
 fun Route.systemAdminRoutes(service: SystemAdminService) {
 

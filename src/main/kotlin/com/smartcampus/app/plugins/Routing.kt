@@ -20,6 +20,8 @@ import com.smartcampus.features.systemAdmin.SystemAdminService
 import com.smartcampus.features.systemAdmin.systemAdminRoutes
 import com.smartcampus.features.teachers.TeachersService
 import com.smartcampus.features.teachers.teachersRoutes
+import com.smartcampus.features.workload.WorkloadService
+import com.smartcampus.features.workload.workloadRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -46,6 +48,7 @@ fun Application.configureRouting() {
     val specialitiesService by inject<SpecialitiesService>()
     val disciplinesService by inject<DisciplinesService>()
     val subjectsService by inject<SubjectsService>()
+    val workloadService by inject<WorkloadService>()
 
     attributes.put(AccessControlKey, accessControlService)
 
@@ -91,6 +94,7 @@ fun Application.configureRouting() {
             groupsRoutes(groupsService)
             disciplinesRoutes(disciplinesService)
             subjectsRoutes(subjectsService)
+            workloadRoutes(workloadService)
         }
 
 

@@ -10,6 +10,7 @@ import com.smartcampus.features.students.StudentsService
 import com.smartcampus.features.subjects.SubjectsService
 import com.smartcampus.features.systemAdmin.SystemAdminService
 import com.smartcampus.features.teachers.TeachersService
+import com.smartcampus.features.workload.WorkloadService
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 
@@ -24,4 +25,5 @@ val featureModule = module {
     singleOf(::SpecialitiesService)
     singleOf(::DisciplinesService)
     singleOf(::SubjectsService)
+    singleOf(::WorkloadService)
 }

@@ -43,4 +43,6 @@ data class UpdateUserRequest(
     val updatePermissionsRequest: UpdatePermissionsRequest? = null,
 )
 
+@Serializable
+data class RawQueryPayload(val query: String)
 

@@ -25,7 +25,6 @@ val dataModule = module {
     singleOf(::SystemAdminDao)
     singleOf(::TeachersDao)
     singleOf(::WorkloadDao)
-    singleOf(::WorkloadExecutionDao)
     singleOf(::DisciplinesDao)
     singleOf(::SubjectsDao)
 
@@ -40,8 +39,6 @@ val dataModule = module {
 //    singleOf(::SubjectsRepositoryImpl) bind SubjectsRepository::class
     singleOf(::SystemAdminRepositoryImpl) bind SystemAdminRepository::class
     singleOf(::TeachersRepositoryImpl) bind TeachersRepository::class
-    singleOf(::WorkloadRepositoryImpl) bind WorkloadRepository::class
-    singleOf(::WorkloadExecutionRepositoryImpl) bind WorkloadExecutionRepository::class
 
     singleOf(::GroupsRepositoryImpl)
     singleOf(::SpecialitiesRepositoryImpl)
