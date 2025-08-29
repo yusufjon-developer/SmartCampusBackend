@@ -84,17 +84,3 @@ data class StudentUpdateRequest(
     val info: StudentSensitiveUpdateRequest? = null
 )
 
-@Serializable
-data class SpecialityDto(
-    val id: Int,
-    val name: String? = null
-)
-
-@Serializable
-data class GroupDto(
-    val id: Int,
-    val name: String? = null,
-    val course: Int? = null,
-    val speciality: SpecialityDto? = null
-)
-

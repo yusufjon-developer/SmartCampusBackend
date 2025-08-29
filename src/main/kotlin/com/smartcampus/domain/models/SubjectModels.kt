@@ -23,3 +23,9 @@ data class SubjectCreateRequest(
 data class SubjectUpdateRequest(
     val name: String?
 )
+
+@Serializable
+data class SubjectDto(
+    val id: Int,
+    val name: String? = null
+)

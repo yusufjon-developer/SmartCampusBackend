@@ -1,44 +1,32 @@
 package com.smartcampus.features.curriculums
 
-import com.smartcampus.domain.models.CurriculumCreateRequest
-import com.smartcampus.domain.models.CurriculumDetailsDto
-import com.smartcampus.domain.models.CurriculumListItemDto
-import com.smartcampus.domain.models.CurriculumUpdateRequest
+import com.smartcampus.domain.models.*
 import com.smartcampus.domain.models.common.PageRequestParams
-import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.repositories.CurriculumsRepository
 import org.slf4j.LoggerFactory
 
-class CurriculumsService(private val repository: CurriculumsRepository) {
+class CurriculumsService(private val repo: CurriculumsRepository) {
     private val log = LoggerFactory.getLogger(CurriculumsService::class.java)
 
-    suspend fun listCurriculums(params: PageRequestParams): PaginatedResult<CurriculumListItemDto> {
-        log.debug("Listing curriculums")
-        return repository.getCurriculums(params)
+    suspend fun listCurriculums(params: PageRequestParams) = repo.getCurriculums(params)
+
+    suspend fun getCurriculum(id: Int): CurriculumDto? = repo.getCurriculumById(id)
+
+    suspend fun createCurriculum(request: CurriculumCreateRequest): CurriculumDto {
+        // Базовая валидация
+        if (request.year != null && request.year < 2000) throw IllegalArgumentException("Invalid year")
+        return repo.createCurriculum(request)
     }
 
-    suspend fun getCurriculumById(id: Int): CurriculumDetailsDto {
-        log.debug("Getting curriculum id=$id")
-        return repository.getCurriculumById(id) ?: throw NoSuchElementException("Curriculum with id $id not found.")
-    }
-
-    suspend fun createCurriculum(request: CurriculumCreateRequest): CurriculumDetailsDto {
-        log.info("Creating curriculum: $request")
-        // basic validation
-        if (request.specialityId <= 0) throw IllegalArgumentException("specialityId must be provided")
-        return repository.createCurriculum(request)
-    }
-
-    suspend fun updateCurriculum(id: Int, request: CurriculumUpdateRequest): CurriculumDetailsDto {
-        log.info("Updating curriculum id=$id request=$request")
-        return repository.updateCurriculum(id, request) ?: throw NoSuchElementException("Curriculum with id $id not found.")
+    suspend fun updateCurriculum(id: Int, request: CurriculumUpdateRequest): CurriculumDto? {
+        return repo.updateCurriculum(id, request)
     }
 
     suspend fun deleteCurriculum(id: Int): Boolean {
-        log.info("Deleting curriculum id=$id")
-        val deleted = repository.deleteCurriculum(id)
-        if (!deleted) throw NoSuchElementException("Curriculum with id $id not found or could not be deleted.")
-        return true
+        return repo.deleteCurriculum(id)
     }
 
+    suspend fun addDiscipline(curriculumId: Int, req: CurriculumDisciplineCreateRequest) = repo.addDiscipline(curriculumId, req)
+    suspend fun updateDiscipline(cdId: Int, req: CurriculumDisciplineUpdateRequest) = repo.updateDiscipline(cdId, req)
+    suspend fun deleteDiscipline(cdId: Int) = repo.deleteDiscipline(cdId)
 }

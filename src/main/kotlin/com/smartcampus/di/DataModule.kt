@@ -16,14 +16,18 @@ val dataModule = module {
     singleOf(::AuthDao)
     singleOf(::CurriculumsDao)
     singleOf(::GradesDao)
+    singleOf(::GroupsDao)
     singleOf(::ScheduleDao)
     singleOf(::SmartCampusProfileDao)
+    singleOf(::SpecialitiesDao)
     singleOf(::StudentsDao)
     singleOf(::SubjectsDao)
     singleOf(::SystemAdminDao)
     singleOf(::TeachersDao)
     singleOf(::WorkloadDao)
     singleOf(::WorkloadExecutionDao)
+    singleOf(::DisciplinesDao)
+    singleOf(::SubjectsDao)
 
     singleOf(::AcademicWeeksRepositoryImpl) bind AcademicWeeksRepository::class
     singleOf(::AttendanceRepositoryImpl) bind AttendanceRepository::class
@@ -33,9 +37,12 @@ val dataModule = module {
     singleOf(::GradesRepositoryImpl) bind GradesRepository::class
     singleOf(::ScheduleRepositoryImpl) bind ScheduleRepository::class
     singleOf(::StudentsRepositoryImpl) bind StudentsRepository::class
-    singleOf(::SubjectsRepositoryImpl) bind SubjectsRepository::class
+//    singleOf(::SubjectsRepositoryImpl) bind SubjectsRepository::class
     singleOf(::SystemAdminRepositoryImpl) bind SystemAdminRepository::class
     singleOf(::TeachersRepositoryImpl) bind TeachersRepository::class
     singleOf(::WorkloadRepositoryImpl) bind WorkloadRepository::class
     singleOf(::WorkloadExecutionRepositoryImpl) bind WorkloadExecutionRepository::class
+
+    singleOf(::GroupsRepositoryImpl)
+    singleOf(::SpecialitiesRepositoryImpl)
 }

@@ -4,8 +4,18 @@ import com.smartcampus.domain.security.AccessControlService
 import com.smartcampus.domain.security.models.UserSessionPrincipal
 import com.smartcampus.features.auth.AuthService
 import com.smartcampus.features.auth.authRoutes
+import com.smartcampus.features.curriculums.CurriculumsService
+import com.smartcampus.features.curriculums.curriculumsRoutes
+import com.smartcampus.features.disciplines.DisciplinesService
+import com.smartcampus.features.disciplines.disciplinesRoutes
+import com.smartcampus.features.groups.GroupsService
+import com.smartcampus.features.groups.groupsRoutes
+import com.smartcampus.features.specialities.SpecialitiesService
+import com.smartcampus.features.specialities.specialitiesRoutes
 import com.smartcampus.features.students.StudentsService
 import com.smartcampus.features.students.studentsRoutes
+import com.smartcampus.features.subjects.SubjectsService
+import com.smartcampus.features.subjects.subjectsRoutes
 import com.smartcampus.features.systemAdmin.SystemAdminService
 import com.smartcampus.features.systemAdmin.systemAdminRoutes
 import com.smartcampus.features.teachers.TeachersService
@@ -28,14 +38,20 @@ fun Application.configureRouting() {
 
     val accessControlService by inject<AccessControlService>()
     val authService by inject<AuthService>()
+    val curriculumsService by inject<CurriculumsService>()
     val systemAdminService by inject<SystemAdminService>()
     val studentsService by inject<StudentsService>()
     val teachersService by inject<TeachersService>()
+    val groupsService by inject<GroupsService>()
+    val specialitiesService by inject<SpecialitiesService>()
+    val disciplinesService by inject<DisciplinesService>()
+    val subjectsService by inject<SubjectsService>()
 
     attributes.put(AccessControlKey, accessControlService)
 
     routing {
         authRoutes(authService)
+        specialitiesRoutes(specialitiesService)
 
         // в configureRouting / routing { authenticate("auth-jwt") { ... } }
         authenticate("auth-jwt") {
@@ -53,7 +69,12 @@ fun Application.configureRouting() {
                     val names = systemAdminDao.getPermissionNamesByIds(all)
                     call.respond(
                         mapOf(
-                            "principal" to mapOf("userId" to principal.userId, "username" to principal.username, "roleNames" to principal.roleNames, "roleId" to principal.roleId),
+                            "principal" to mapOf(
+                                "userId" to principal.userId,
+                                "username" to principal.username,
+                                "roleNames" to principal.roleNames,
+                                "roleId" to principal.roleId
+                            ),
                             "rolePermissionIds" to rolePerms,
                             "individualPermissionIds" to indivPerms,
                             "allPermissionIds" to all,
@@ -66,6 +87,10 @@ fun Application.configureRouting() {
             // ваши реальные маршруты
             studentsRoutes(studentsService)
             teachersRoutes(teachersService)
+            curriculumsRoutes(curriculumsService)
+            groupsRoutes(groupsService)
+            disciplinesRoutes(disciplinesService)
+            subjectsRoutes(subjectsService)
         }
 
 
