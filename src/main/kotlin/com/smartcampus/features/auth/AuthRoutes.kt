@@ -1,9 +1,9 @@
 package com.smartcampus.features.auth
 
 import com.smartcampus.app.utils.postWithAccess
+import com.smartcampus.domain.models.EmployeeSignInRequest
+import com.smartcampus.domain.models.StudentSignInRequest
 import com.smartcampus.domain.models.auth.RegisterRequest
-import com.smartcampus.domain.models.employee.EmployeeSignInRequest
-import com.smartcampus.domain.models.student.StudentSignInRequest
 import com.smartcampus.domain.security.models.Permissions
 import com.smartcampus.domain.utils.Either
 import io.ktor.http.*

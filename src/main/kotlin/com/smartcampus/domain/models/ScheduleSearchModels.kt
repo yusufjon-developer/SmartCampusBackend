@@ -18,7 +18,7 @@ data class ScheduleSearchFilter(
 
 @Serializable
 data class ScheduleSearchResult(
-    val results: List<ScheduleEntryDto>,
+    val results: List<ScheduleDto>,
     val total: Long,
     val page: Int,
     val size: Int

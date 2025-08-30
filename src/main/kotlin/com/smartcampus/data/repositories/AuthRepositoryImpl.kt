@@ -5,12 +5,12 @@ import com.smartcampus.data.dao.SmartCampusProfileDao
 import com.smartcampus.data.database.auth.entities.RolesTable
 import com.smartcampus.data.database.auth.entities.UserDevicesTable
 import com.smartcampus.data.database.auth.entities.UsersTable
+import com.smartcampus.domain.models.EmployeeSignInRequest
+import com.smartcampus.domain.models.EmployeeSignInResponse
+import com.smartcampus.domain.models.StudentSignInRequest
+import com.smartcampus.domain.models.StudentSignInResponse
 import com.smartcampus.domain.models.auth.RegisterRequest
 import com.smartcampus.domain.models.auth.RegisterResponse
-import com.smartcampus.domain.models.employee.EmployeeSignInRequest
-import com.smartcampus.domain.models.employee.EmployeeSignInResponse
-import com.smartcampus.domain.models.student.StudentSignInRequest
-import com.smartcampus.domain.models.student.StudentSignInResponse
 import com.smartcampus.domain.repositories.AuthRepository
 import com.smartcampus.domain.security.PasswordHasher
 import com.smartcampus.domain.security.TokenUtils

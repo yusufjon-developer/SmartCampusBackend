@@ -1,11 +1,11 @@
 package com.smartcampus.domain.repositories
 
+import com.smartcampus.domain.models.EmployeeSignInRequest
+import com.smartcampus.domain.models.EmployeeSignInResponse
+import com.smartcampus.domain.models.StudentSignInRequest
+import com.smartcampus.domain.models.StudentSignInResponse
 import com.smartcampus.domain.models.auth.RegisterRequest
 import com.smartcampus.domain.models.auth.RegisterResponse
-import com.smartcampus.domain.models.employee.EmployeeSignInRequest
-import com.smartcampus.domain.models.employee.EmployeeSignInResponse
-import com.smartcampus.domain.models.student.StudentSignInRequest
-import com.smartcampus.domain.models.student.StudentSignInResponse
 import com.smartcampus.domain.utils.Either
 
 interface AuthRepository {

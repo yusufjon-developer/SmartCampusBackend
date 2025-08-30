@@ -1,126 +1,137 @@
 package com.smartcampus.data.dao
 
 import com.smartcampus.data.database.smartCampus.SmartCampusDb
-import com.smartcampus.data.database.smartCampus.entities.ScheduleTable
-import com.smartcampus.domain.models.*
-import com.smartcampus.domain.models.common.PageRequestParams
-import com.smartcampus.domain.models.common.PaginatedResult
-import org.jetbrains.exposed.v1.core.Column
-import org.jetbrains.exposed.v1.core.ResultRow
-import org.jetbrains.exposed.v1.core.SortOrder
+import com.smartcampus.data.database.smartCampus.entities.*
+import com.smartcampus.domain.models.ScheduleCreateRequest
+import com.smartcampus.domain.models.ScheduleDto
+import com.smartcampus.domain.models.ScheduleUpdateRequest
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.greater
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.less
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.neq
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.jdbc.*
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
-import kotlin.math.ceil
 
 class ScheduleDao(private val db: SmartCampusDb) {
 
-    private object Sortable {
-        val S: Map<String, Column<*>> = mapOf(
-            "id" to ScheduleTable.id,
-            "day" to ScheduleTable.day,
-            "time" to ScheduleTable.time
-        )
-    }
-
-    private fun Query.applyPaginationAndSorting(params: PageRequestParams, sortable: Map<String, Column<*>>, default: Column<*>): Query {
-        val sf = params.sortBy?.lowercase()
-        val col = sortable[sf] ?: default
-        this.orderBy(col to SortOrder.ASC)
-        this.offset(params.offset)
-        this.limit(params.limit)
-        return this
-    }
-
-    suspend fun searchSchedule(filter: ScheduleSearchFilter): ScheduleSearchResult = db.query {
-        var q = ScheduleTable.selectAll()
-        if (filter.dayFrom != null) q = q.andWhere { ScheduleTable.day greaterEq LocalDate.parse(filter.dayFrom) }
-        if (filter.dayTo != null) q = q.andWhere { ScheduleTable.day lessEq LocalDate.parse(filter.dayTo) }
-        if (filter.teacherId != null) q = q.andWhere { ScheduleTable.teacherId eq filter.teacherId }
-        if (filter.groupId != null) q = q.andWhere { ScheduleTable.groupId eq filter.groupId }
-        if (filter.disciplineId != null) q = q.andWhere { ScheduleTable.disciplineId eq filter.disciplineId }
-        if (filter.auditoriumId != null) q = q.andWhere { ScheduleTable.auditoriumId eq filter.auditoriumId }
-        if (filter.type != null) q = q.andWhere { ScheduleTable.type eq filter.type }
-
-        val total = q.count()
-        val page = filter.page
-        val size = filter.size
-        val offset = ((if (page > 0) page - 1 else 0) * size).toLong()
-        val rows = q.limit(size).offset(offset).map { it.toDto() }
-        ScheduleSearchResult(results = rows, total = total, page = page, size = size)
-    }
-
-    suspend fun getScheduleEntries(params: PageRequestParams): PaginatedResult<ScheduleEntryDto> = db.query {
-        val rows = ScheduleTable.selectAll().applyPaginationAndSorting(params, Sortable.S, ScheduleTable.day).map { it.toDto() }
-        val total = ScheduleTable.selectAll().count()
-        val totalPages = if (total == 0L || params.limit <= 0) 0 else ceil(total.toDouble() / params.limit).toInt()
-        PaginatedResult(rows, total, totalPages, params.page, params.limit, params.sortBy)
-    }
-
-    suspend fun getScheduleEntryById(id: Int): ScheduleEntryDto? = db.query {
-        ScheduleTable.selectAll().where { ScheduleTable.id eq id }.singleOrNull()?.toDto()
-    }
-
-    suspend fun createScheduleEntry(req: ScheduleCreateRequest): ScheduleEntryDto = db.query {
-        val newId = ScheduleTable.insertAndGetId {
-            it[ScheduleTable.day] = LocalDate.parse(req.day)
-            it[ScheduleTable.time] = LocalTime.parse(req.time)
-            it[ScheduleTable.groupId] = req.groupId
-            it[ScheduleTable.disciplineId] = req.disciplineId
-            it[ScheduleTable.teacherId] = req.teacherId
-            it[ScheduleTable.auditoriumId] = req.auditoriumId
-            it[ScheduleTable.type] = req.type
-        }
-        getScheduleEntryById(newId.value)!!
-    }
-
-    suspend fun updateScheduleEntry(id: Int, req: ScheduleUpdateRequest): ScheduleEntryDto? = db.query {
-        ScheduleTable.update({ ScheduleTable.id eq id }) {
-            if (req.day != null) it[ScheduleTable.day] = LocalDate.parse(req.day)
-            if (req.time != null) it[ScheduleTable.time] = LocalTime.parse(req.time)
-            if (req.groupId != null) it[ScheduleTable.groupId] = req.groupId
-            it[ScheduleTable.disciplineId] = req.disciplineId
-            it[ScheduleTable.teacherId] = req.teacherId
-            it[ScheduleTable.auditoriumId] = req.auditoriumId
-            it[ScheduleTable.type] = req.type
-        }
-        getScheduleEntryById(id)
-    }
-
-    suspend fun deleteScheduleEntry(id: Int): Boolean = db.query {
-        ScheduleTable.deleteWhere { ScheduleTable.id eq id } > 0
-    }
-
-    suspend fun getScheduleForTeacher(teacherId: Int, filter: ScheduleSearchFilter): ScheduleSearchResult = db.query {
-        var q = ScheduleTable.selectAll().where { ScheduleTable.teacherId eq teacherId }
-        if (filter.dayFrom != null) q = q.andWhere { ScheduleTable.day greaterEq LocalDate.parse(filter.dayFrom) }
-        if (filter.dayTo != null) q = q.andWhere { ScheduleTable.day lessEq LocalDate.parse(filter.dayTo) }
-        val total = q.count()
-        val offset = ((if (filter.page > 0) filter.page - 1 else 0) * filter.size).toLong()
-        val rows = q.limit(filter.size).offset(offset).map { it.toDto() }
-        ScheduleSearchResult(rows, total, filter.page, filter.size)
-    }
-
-    suspend fun getScheduleForGroup(groupId: Int, filter: ScheduleSearchFilter): ScheduleSearchResult = db.query {
-        var q = ScheduleTable.selectAll().where { ScheduleTable.groupId eq groupId }
-        if (filter.dayFrom != null) q = q.andWhere { ScheduleTable.day greaterEq LocalDate.parse(filter.dayFrom) }
-        if (filter.dayTo != null) q = q.andWhere { ScheduleTable.day lessEq LocalDate.parse(filter.dayTo) }
-        val total = q.count()
-        val offset = ((if (filter.page > 0) filter.page - 1 else 0) * filter.size).toLong()
-        val rows = q.limit(filter.size).offset(offset).map { it.toDto() }
-        ScheduleSearchResult(rows, total, filter.page, filter.size)
-    }
-
-    private fun ResultRow.toDto(): ScheduleEntryDto =
-        ScheduleEntryDto(
+    private fun ResultRow.toDto(): ScheduleDto {
+        return ScheduleDto(
             id = this[ScheduleTable.id].value,
+            workloadId = this[ScheduleTable.workloadId]?.value,
             day = this[ScheduleTable.day].toString(),
-            time = this[ScheduleTable.time].toString(),
+            startTime = this[ScheduleTable.startTime].toString(),
+            endTime = this[ScheduleTable.endTime].toString(),
+            teacherId = this[ScheduleTable.teacherId]?.value,
             groupId = this[ScheduleTable.groupId]?.value,
             disciplineId = this[ScheduleTable.disciplineId]?.value,
-            teacherId = this[ScheduleTable.teacherId]?.value,
             auditoriumId = this[ScheduleTable.auditoriumId]?.value,
             type = this[ScheduleTable.type]
         )
+    }
+
+    suspend fun listSchedules(
+        day: LocalDate? = null,
+        teacherId: Int? = null,
+        groupId: Int? = null,
+        auditoriumId: Int? = null
+    ): List<ScheduleDto> = db.query {
+        val q = ScheduleTable.selectAll()
+        if (day != null) q.andWhere { ScheduleTable.day eq day }
+        if (teacherId != null) q.andWhere { ScheduleTable.teacherId eq EntityID(teacherId, TeachersTable) }
+        if (groupId != null) q.andWhere { ScheduleTable.groupId eq EntityID(groupId, GroupsTable) }
+        if (auditoriumId != null) q.andWhere { ScheduleTable.auditoriumId eq EntityID(auditoriumId, AuditoriumsTable) }
+        q.orderBy(ScheduleTable.day to SortOrder.ASC, ScheduleTable.startTime to SortOrder.ASC)
+            .map { it.toDto() }
+    }
+
+    suspend fun getById(id: Int): ScheduleDto? = db.query {
+        ScheduleTable.selectAll().where { ScheduleTable.id eq id }.singleOrNull()?.toDto()
+    }
+
+    suspend fun create(req: ScheduleCreateRequest): ScheduleDto? = db.query {
+        val day = LocalDate.parse(req.day)
+        val start = day.atTime(LocalTime.parse(req.startTime))
+        val end = day.atTime(LocalTime.parse(req.endTime))
+
+        val newId = ScheduleTable.insertAndGetId {
+            req.workloadId?.let { w -> it[ScheduleTable.workloadId] = EntityID(w, TeachersWorkloadTable) }
+            it[ScheduleTable.day] = day
+            it[ScheduleTable.startTime] = start
+            it[ScheduleTable.endTime] = end
+            req.teacherId?.let { t -> it[ScheduleTable.teacherId] = EntityID(t, TeachersTable) }
+            req.groupId?.let { g -> it[ScheduleTable.groupId] = EntityID(g, GroupsTable) }
+            req.disciplineId?.let { d -> it[ScheduleTable.disciplineId] = EntityID(d, DisciplinesTable) }
+            req.auditoriumId?.let { a -> it[ScheduleTable.auditoriumId] = EntityID(a, AuditoriumsTable) }
+            it[ScheduleTable.type] = req.type
+        }
+        ScheduleTable.selectAll().where { ScheduleTable.id eq newId }.single().toDto()
+    }
+
+    suspend fun update(id: Int, req: ScheduleUpdateRequest): ScheduleDto? = db.query {
+        ScheduleTable.selectAll().where { ScheduleTable.id eq id }.singleOrNull() ?: return@query null
+
+        ScheduleTable.update({ ScheduleTable.id eq id }) { upd ->
+            // update only when provided in request
+            req.workloadId?.let { v -> upd[ScheduleTable.workloadId] = EntityID(v, TeachersWorkloadTable) }
+            req.day.let { d -> upd[ScheduleTable.day] = LocalDate.parse(d) }
+            req.startTime.let { s -> upd[ScheduleTable.startTime] = LocalDateTime.parse(s) }
+            req.endTime.let { e -> upd[ScheduleTable.endTime] = LocalDateTime.parse(e) }
+            req.teacherId?.let { t -> upd[ScheduleTable.teacherId] = EntityID(t, TeachersTable) }
+            req.groupId?.let { g -> upd[ScheduleTable.groupId] = EntityID(g, GroupsTable) }
+            req.disciplineId?.let { d -> upd[ScheduleTable.disciplineId] = EntityID(d, DisciplinesTable) }
+            req.auditoriumId?.let { a -> upd[ScheduleTable.auditoriumId] = EntityID(a, AuditoriumsTable) }
+            req.type?.let { ty -> upd[ScheduleTable.type] = ty }
+        }
+
+        ScheduleTable.selectAll().where { ScheduleTable.id eq id }.single().toDto()
+    }
+
+    suspend fun delete(id: Int): Boolean = db.query {
+        ScheduleTable.deleteWhere { ScheduleTable.id eq id } > 0
+    }
+
+    /**
+     * Find conflicts:
+     * existing.start < newEnd AND existing.end > newStart
+     * AND (existing.teacherId == teacherId OR existing.groupId == groupId OR existing.auditoriumId == auditoriumId)
+     *
+     * excludeId — when updating, exclude own row.
+     */
+    suspend fun findConflicts(
+        day: LocalDate,
+        start: LocalTime,
+        end: LocalTime,
+        teacherId: Int? = null,
+        groupId: Int? = null,
+        auditoriumId: Int? = null,
+        excludeId: Int? = null
+    ): List<ScheduleDto> = db.query {
+        val startDt = day.atTime(start)
+        val endDt = day.atTime(end)
+
+        val overlap = (ScheduleTable.day eq day) and
+                (ScheduleTable.startTime less endDt) and
+                (ScheduleTable.endTime greater startDt)
+
+        val entityConds = mutableListOf<Op<Boolean>>()
+        teacherId?.let { entityConds.add(ScheduleTable.teacherId eq EntityID(it, TeachersTable)) }
+        groupId?.let { entityConds.add(ScheduleTable.groupId eq EntityID(it, GroupsTable)) }
+        auditoriumId?.let { entityConds.add(ScheduleTable.auditoriumId eq EntityID(it, AuditoriumsTable)) }
+
+        if (entityConds.isEmpty()) return@query emptyList()
+
+        var combinedEntityCond: Op<Boolean> = entityConds.first()
+        for (i in 1 until entityConds.size) combinedEntityCond = combinedEntityCond or entityConds[i]
+
+        var finalCondition: Op<Boolean> = overlap and combinedEntityCond
+        if (excludeId != null) finalCondition = finalCondition and (ScheduleTable.id neq excludeId)
+
+        ScheduleTable.selectAll().where { finalCondition }
+            .orderBy(ScheduleTable.startTime to SortOrder.ASC)
+            .map { it.toDto() }
+    }
 }

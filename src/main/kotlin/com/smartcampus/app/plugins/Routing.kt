@@ -10,6 +10,8 @@ import com.smartcampus.features.disciplines.DisciplinesService
 import com.smartcampus.features.disciplines.disciplinesRoutes
 import com.smartcampus.features.groups.GroupsService
 import com.smartcampus.features.groups.groupsRoutes
+import com.smartcampus.features.schedule.ScheduleService
+import com.smartcampus.features.schedule.scheduleRoutes
 import com.smartcampus.features.specialities.SpecialitiesService
 import com.smartcampus.features.specialities.specialitiesRoutes
 import com.smartcampus.features.students.StudentsService
@@ -49,12 +51,14 @@ fun Application.configureRouting() {
     val disciplinesService by inject<DisciplinesService>()
     val subjectsService by inject<SubjectsService>()
     val workloadService by inject<WorkloadService>()
+    val scheduleService by inject<ScheduleService>()
 
     attributes.put(AccessControlKey, accessControlService)
 
     routing {
         authRoutes(authService)
         specialitiesRoutes(specialitiesService)
+        scheduleRoutes(scheduleService)
 
         // в configureRouting / routing { authenticate("auth-jwt") { ... } }
         authenticate("auth-jwt") {

@@ -5,6 +5,7 @@ import com.smartcampus.features.auth.AuthService
 import com.smartcampus.features.curriculums.CurriculumsService
 import com.smartcampus.features.disciplines.DisciplinesService
 import com.smartcampus.features.groups.GroupsService
+import com.smartcampus.features.schedule.ScheduleService
 import com.smartcampus.features.specialities.SpecialitiesService
 import com.smartcampus.features.students.StudentsService
 import com.smartcampus.features.subjects.SubjectsService
@@ -26,4 +27,5 @@ val featureModule = module {
     singleOf(::DisciplinesService)
     singleOf(::SubjectsService)
     singleOf(::WorkloadService)
+    singleOf(::ScheduleService)
 }
