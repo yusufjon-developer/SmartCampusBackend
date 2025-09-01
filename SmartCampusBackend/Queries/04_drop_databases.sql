@@ -6,6 +6,9 @@
 ***********************************************/
 
 -- Drop SmartCampus safely
+USE master;
+GO
+
 IF EXISTS (SELECT * FROM sys.databases WHERE name = N'SmartCampus')
     BEGIN
         PRINT 'Dropping SmartCampus database (forced)...';

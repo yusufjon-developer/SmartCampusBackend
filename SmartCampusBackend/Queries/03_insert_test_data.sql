@@ -1,5 +1,5 @@
 /***********************************************
-  03_insert_test_data.sql (CORRECTED & OPTIMIZED v2)
+  03_insert_test_data.sql (CORRECTED & OPTIMIZED v3)
   Генерация большого объема тестовых данных для SmartCampus и SmartCampusAuth
   Идемпотентно, быстро и надежно.
   Предназначено для MS SQL Server.
@@ -15,18 +15,18 @@ SET NOCOUNT ON;
 
 -- ========== Config: настраиваемый объём данных ==========
 DECLARE
-    @specialitiesCount INT = 10,
+    @specialitiesCount INT = 1,
     @subjectsCount INT = 60,
-    @teachersCount INT = 80,
+    @teachersCount INT = 40,
     @auditoriumsCount INT = 20,
-    @groupsPerSpec INT = 6,
+    @groupsPerSpec INT = 3,
     @studentsPerGroup INT = 25,
     @disciplinesCount INT = 220,
     @curriculumsPerSpec INT = 2,
     @disciplinesPerCurriculum INT = 12,
     @workloadsPerTeacher INT = 6,
-    @executionsPerWorkload INT = 3, -- [FIX] Возвращаем недостающую переменную
-    @scheduleEntries INT = 1500,
+    @executionsPerWorkload INT = 3,
+    @scheduleEntries INT = 300,
     @attendanceRecords INT = 5000,
     @gradeRecords INT = 4000;
 -- ======================================================
@@ -41,7 +41,7 @@ FROM sys.all_columns a CROSS JOIN sys.all_columns b;
 PRINT 'Starting test data generation for SmartCampus...';
 
 -- 1) Specialities
-IF OBJECT_ID('Specialities','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Specialities)
+IF NOT EXISTS (SELECT 1 FROM Specialities)
     BEGIN
         PRINT '-> Inserting Specialities...';
         INSERT INTO Specialities (name)
@@ -49,7 +49,7 @@ IF OBJECT_ID('Specialities','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Speci
     END
 
 -- 2) Subjects
-IF OBJECT_ID('Subjects','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Subjects)
+IF NOT EXISTS (SELECT 1 FROM Subjects)
     BEGIN
         PRINT '-> Inserting Subjects...';
         INSERT INTO Subjects (name)
@@ -57,7 +57,7 @@ IF OBJECT_ID('Subjects','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Subjects)
     END
 
 -- 3) Auditoriums
-IF OBJECT_ID('Auditoriums','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Auditoriums)
+IF NOT EXISTS (SELECT 1 FROM Auditoriums)
     BEGIN
         PRINT '-> Inserting Auditoriums...';
         INSERT INTO Auditoriums (number, type)
@@ -68,7 +68,7 @@ IF OBJECT_ID('Auditoriums','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Audito
     END
 
 -- 4) Teachers
-IF OBJECT_ID('Teachers','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Teachers)
+IF NOT EXISTS (SELECT 1 FROM Teachers)
     BEGIN
         PRINT '-> Inserting Teachers...';
         INSERT INTO Teachers (surname, name, lastname, birthday, phone_number)
@@ -79,8 +79,23 @@ IF OBJECT_ID('Teachers','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Teachers)
         FROM #nums;
     END
 
+-- Teachers_Info (зависит от Teachers)
+IF NOT EXISTS (SELECT 1 FROM dbo.Teachers_Info)
+    BEGIN
+        PRINT '-> Inserting Teachers_Info...';
+        INSERT INTO dbo.Teachers_Info (teacher_id, address, passport_number, high_school, degree, position)
+        SELECT
+            T.id,
+            CONCAT('Address for Teacher ', T.id),
+            CONCAT('PAS-', T.id, '-', FORMAT(CHECKSUM(NEWID()) % 1000000, '000000')),
+            'High School of Science',
+            'PhD',
+            CHOOSE((T.id % 3) + 1, 'Professor', 'Associate Professor', 'Assistant')
+        FROM dbo.Teachers AS T;
+    END
+
 -- 5) Groups
-IF OBJECT_ID('Groups','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Groups)
+IF NOT EXISTS (SELECT 1 FROM Groups)
     BEGIN
         PRINT '-> Creating Groups (set-based)...';
         INSERT INTO Groups (name, spec_id, course)
@@ -93,7 +108,7 @@ IF OBJECT_ID('Groups','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Groups)
     END
 
 -- 6) Students
-IF OBJECT_ID('Students','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Students)
+IF NOT EXISTS (SELECT 1 FROM Students)
     BEGIN
         PRINT '-> Inserting Students (set-based)...';
         DECLARE @totalGroups INT = (SELECT COUNT(*) FROM Groups);
@@ -114,6 +129,23 @@ IF OBJECT_ID('Students','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Students)
             END
     END
 
+-- Students_Info (зависит от Students)
+IF NOT EXISTS (SELECT 1 FROM dbo.Students_Info)
+    BEGIN
+        PRINT '-> Inserting Students_Info...';
+        INSERT INTO dbo.Students_Info (student_id, address, passport_number, school, student_card_number, study_type, study_form, status)
+        SELECT
+            S.id,
+            CONCAT('Address for Student ', S.id),
+            CONCAT('PAS-', S.id, '-', FORMAT(CHECKSUM(NEWID()) % 1000000, '000000')),
+            'School №' + CAST(ABS(CHECKSUM(NEWID())) % 200 AS NVARCHAR(10)),
+            CONCAT('SC-', S.id, '-', FORMAT(CHECKSUM(NEWID()) % 1000, '000')),
+            'Budget',
+            'Full-time',
+            'Active'
+        FROM dbo.Students AS S;
+    END
+
 -- Для всех последующих вставок подготовим временные таблицы с нумерованными ID.
 DROP TABLE IF EXISTS #RndSubjects, #RndSpecs, #RndTeachers, #RndGroups, #RndDisciplines, #RndAuditoriums, #RndWorkloads, #RndStudents;
 SELECT id, ROW_NUMBER() OVER(ORDER BY NEWID()) as rn INTO #RndSubjects FROM Subjects;
@@ -123,7 +155,7 @@ SELECT id, ROW_NUMBER() OVER(ORDER BY NEWID()) as rn INTO #RndGroups FROM Groups
 SELECT id, ROW_NUMBER() OVER(ORDER BY NEWID()) as rn INTO #RndAuditoriums FROM Auditoriums;
 
 -- 7) Disciplines
-IF OBJECT_ID('Disciplines','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Disciplines)
+IF NOT EXISTS (SELECT 1 FROM Disciplines)
     BEGIN
         PRINT '-> Inserting Disciplines (set-based)...';
         DECLARE @subjCount INT = (SELECT COUNT(*) FROM #RndSubjects), @specCount INT = (SELECT COUNT(*) FROM #RndSpecs);
@@ -140,7 +172,7 @@ IF OBJECT_ID('Disciplines','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Discip
 SELECT id, ROW_NUMBER() OVER(ORDER BY NEWID()) as rn INTO #RndDisciplines FROM Disciplines;
 
 -- 8) Curriculums and Curriculum_Disciplines
-IF OBJECT_ID('Curriculums','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Curriculums)
+IF NOT EXISTS (SELECT 1 FROM Curriculums)
     BEGIN
         PRINT '-> Inserting Curriculums & Disciplines (set-based with OUTPUT)...';
         DECLARE @discCount INT = (SELECT COUNT(*) FROM #RndDisciplines);
@@ -164,7 +196,7 @@ IF OBJECT_ID('Curriculums','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Curric
     END
 
 -- 9) Teachers_Workload
-IF OBJECT_ID('Teachers_Workload','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Teachers_Workload)
+IF NOT EXISTS (SELECT 1 FROM Teachers_Workload)
     BEGIN
         PRINT '-> Inserting Teachers_Workload (set-based)...';
         DECLARE @teachCount INT = (SELECT COUNT(*) FROM #RndTeachers), @discCountW INT = (SELECT COUNT(*) FROM #RndDisciplines), @groupCountW INT = (SELECT COUNT(*) FROM #RndGroups);
@@ -181,7 +213,7 @@ IF OBJECT_ID('Teachers_Workload','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM 
 SELECT id, ROW_NUMBER() OVER(ORDER BY NEWID()) as rn INTO #RndWorkloads FROM Teachers_Workload;
 
 -- 10) Workload_Execution
-IF OBJECT_ID('Workload_Execution','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Workload_Execution)
+IF NOT EXISTS (SELECT 1 FROM Workload_Execution)
     BEGIN
         PRINT '-> Inserting Workload_Execution (set-based)...';
         DECLARE @workloadCount INT = (SELECT COUNT(*) FROM #RndWorkloads), @teachCountE INT = (SELECT COUNT(*) FROM #RndTeachers);
@@ -195,29 +227,52 @@ IF OBJECT_ID('Workload_Execution','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM
     END
 
 -- 11) Schedule
-IF OBJECT_ID('Schedule','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Schedule)
+IF NOT EXISTS (SELECT 1 FROM Schedule)
     BEGIN
         PRINT '-> Inserting Schedule entries (set-based)...';
         DECLARE @workloadCountS INT = (SELECT COUNT(*) FROM #RndWorkloads), @groupCountS INT = (SELECT COUNT(*) FROM #RndGroups), @discCountS INT = (SELECT COUNT(*) FROM #RndDisciplines), @teachCountS INT = (SELECT COUNT(*) FROM #RndTeachers), @audCountS INT = (SELECT COUNT(*) FROM #RndAuditoriums);
-        INSERT INTO Schedule (workload_id, day, start_time, end_time, group_id, discipline_id, teacher_id, auditorium_id, type)
-        SELECT
-            w.id, DATEADD(DAY, n.n % 120, '2024-09-01'),
-            CAST(DATEADD(MINUTE, (n.n % 5)*90, '08:30') AS DATETIME2),
-            CAST(DATEADD(MINUTE, 80, DATEADD(MINUTE, (n.n % 5)*90, '08:30')) AS DATETIME2),
-            g.id, d.id, t.id, a.id,
-            CHOOSE((n.n % 4) + 1, 'Lecture', 'Lab', 'Practice', 'Seminar')
-        FROM (SELECT TOP (@scheduleEntries) n FROM #nums) n
-                 LEFT JOIN #RndWorkloads w ON n.n % @workloadCountS + 1 = w.rn
-                 LEFT JOIN #RndGroups g ON (n.n+1) % @groupCountS + 1 = g.rn
-                 LEFT JOIN #RndDisciplines d ON (n.n+2) % @discCountS + 1 = d.rn
-                 LEFT JOIN #RndTeachers t ON (n.n+3) % @teachCountS + 1 = t.rn
-                 LEFT JOIN #RndAuditoriums a ON (n.n+4) % @audCountS + 1 = a.rn;
+
+        -- Modified CTE to generate more realistic schedule times
+        ;WITH ScheduleData AS (
+            SELECT
+                n.n,
+                w.id AS workload_id,
+                g.id AS group_id,
+                d.id AS discipline_id,
+                t.id AS teacher_id,
+                a.id AS auditorium_id,
+                -- We get a day number (0-27)
+                (n.n - 1) % 28 AS day_num,
+                -- We get a class number for that day (0-4)
+                ( (n.n - 1) / 28) % 5 AS class_num,
+                -- We select a type based on the class number
+                CHOOSE(((n.n - 1) / 28) % 4 + 1, 'Lecture', 'Lab', 'Practice', 'Seminar') AS type_str
+            FROM (SELECT TOP (@scheduleEntries) n FROM #nums) n
+                     LEFT JOIN #RndWorkloads w ON n.n % @workloadCountS + 1 = w.rn
+                     LEFT JOIN #RndGroups g ON (n.n+1) % @groupCountS + 1 = g.rn
+                     LEFT JOIN #RndDisciplines d ON (n.n+2) % @discCountS + 1 = d.rn
+                     LEFT JOIN #RndTeachers t ON (n.n+3) % @teachCountS + 1 = t.rn
+                     LEFT JOIN #RndAuditoriums a ON (n.n+4) % @audCountS + 1 = a.rn
+        )
+         INSERT INTO Schedule (workload_id, day, start_time, end_time, group_id, discipline_id, teacher_id, auditorium_id, type)
+         SELECT
+             workload_id,
+             DATEADD(DAY, day_num, '2024-09-01'),
+             DATEADD(MINUTE, class_num * 90, '08:30'),
+             DATEADD(MINUTE, 80, DATEADD(MINUTE, class_num * 90, '08:30')),
+             group_id,
+             discipline_id,
+             teacher_id,
+             auditorium_id,
+             type_str
+         FROM ScheduleData
+         ORDER BY day_num, class_num;
     END
 
 SELECT id, ROW_NUMBER() OVER(ORDER BY NEWID()) as rn INTO #RndStudents FROM Students;
 
 -- 12) Attendance & Grades
-IF OBJECT_ID('Attendance','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Attendance)
+IF NOT EXISTS (SELECT 1 FROM Attendance)
     BEGIN
         PRINT '-> Inserting Attendance (set-based)...';
         DECLARE @studCountA INT = (SELECT COUNT(*) FROM #RndStudents), @discCountA INT = (SELECT COUNT(*) FROM #RndDisciplines);
@@ -230,7 +285,7 @@ IF OBJECT_ID('Attendance','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Attenda
                  LEFT JOIN #RndDisciplines d ON (n.n+1) % @discCountA + 1 = d.rn;
     END
 
-IF OBJECT_ID('Grades','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Grades)
+IF NOT EXISTS (SELECT 1 FROM Grades)
     BEGIN
         PRINT '-> Inserting Grades (set-based)...';
         DECLARE @studCountG INT = (SELECT COUNT(*) FROM #RndStudents), @discCountG INT = (SELECT COUNT(*) FROM #RndDisciplines), @teachCountG INT = (SELECT COUNT(*) FROM #RndTeachers);
@@ -245,7 +300,7 @@ IF OBJECT_ID('Grades','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Grades)
     END
 
 -- 13) Academic weeks
-IF OBJECT_ID('Academic_Weeks','U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Academic_Weeks)
+IF NOT EXISTS (SELECT 1 FROM Academic_Weeks)
     BEGIN
         PRINT '-> Inserting Academic weeks...';
         INSERT INTO Academic_Weeks (academic_year, week_number, start_date, end_date, description)
