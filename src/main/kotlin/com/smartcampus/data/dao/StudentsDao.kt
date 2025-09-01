@@ -1,5 +1,6 @@
 package com.smartcampus.data.dao
 
+import com.smartcampus.data.database.auth.entities.UsersTable
 import com.smartcampus.data.database.smartCampus.SmartCampusDb
 import com.smartcampus.data.database.smartCampus.entities.GroupsTable
 import com.smartcampus.data.database.smartCampus.entities.SpecialitiesTable
@@ -68,11 +69,13 @@ class StudentsDao(private val db: SmartCampusDb) {
         val row = StudentsTable
             .leftJoin(GroupsTable, { StudentsTable.groupId }, { GroupsTable.id })
             .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
-            .select(StudentsTable.columns + GroupsTable.columns + SpecialitiesTable.columns)
+            .leftJoin(UsersTable, { StudentsTable.id }, { UsersTable.studentProfileId })
+            .select(StudentsTable.columns + GroupsTable.columns + SpecialitiesTable.columns + UsersTable.email)
             .where { StudentsTable.id eq id }
             .singleOrNull() ?: return@query null
 
         // map to StudentDetailsDto WITHOUT sensitive
+
         row.toStudentDetailsDto()
     }
 
@@ -86,7 +89,7 @@ class StudentsDao(private val db: SmartCampusDb) {
     }
 
     suspend fun updateStudent(id: Int, request: StudentUpdateRequest, performingUserId: Int): StudentDetailsDto? = db.query {
-        val existing = StudentsTable.selectAll().where { StudentsTable.id eq id }.singleOrNull() ?: return@query null
+        StudentsTable.selectAll().where { StudentsTable.id eq id }.singleOrNull() ?: return@query null
 
         StudentsTable.update({ StudentsTable.id eq id }) {
             request.surname?.let { v -> it[StudentsTable.surname] = v }
@@ -147,7 +150,8 @@ class StudentsDao(private val db: SmartCampusDb) {
         val rowAfter = StudentsTable
             .leftJoin(GroupsTable, { StudentsTable.groupId }, { GroupsTable.id })
             .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
-            .select(StudentsTable.columns + GroupsTable.columns + SpecialitiesTable.columns)
+            .leftJoin(UsersTable, { StudentsTable.id }, { UsersTable.studentProfileId })
+            .select(StudentsTable.columns + GroupsTable.columns + SpecialitiesTable.columns + UsersTable.email)
             .where { StudentsTable.id eq id }
             .singleOrNull() ?: return@query null
 
@@ -179,6 +183,7 @@ class StudentsDao(private val db: SmartCampusDb) {
     private fun ResultRow.toStudentDetailsDto(): StudentDetailsDto =
         StudentDetailsDto(
             id = this[StudentsTable.id].value,
+            email = this[UsersTable.email],
             surname = this[StudentsTable.surname],
             name = this[StudentsTable.name],
             lastname = this[StudentsTable.lastname],

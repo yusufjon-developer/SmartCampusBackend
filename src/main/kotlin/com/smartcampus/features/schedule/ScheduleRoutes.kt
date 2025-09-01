@@ -89,9 +89,9 @@ fun Route.scheduleRoutes(service: ScheduleService) {
                 val req = call.receive<ScheduleCreateRequest>()
                 val conflicts = service.validateRequest(req)
                 if (conflicts.isEmpty()) {
-                    call.respond(HttpStatusCode.OK, mapOf("conflicts" to emptyList<Any>()))
+                    call.respond(HttpStatusCode.OK, emptyList<Any>())
                 } else {
-                    call.respond(HttpStatusCode.Conflict, mapOf("conflicts" to conflicts))
+                    call.respond(HttpStatusCode.Conflict, conflicts)
                 }
             }
         }

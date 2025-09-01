@@ -27,6 +27,7 @@ data class TeacherSensitiveDto(
 @Serializable
 data class TeacherDetailsDto(
     val id: Int,
+    val email: String? = null,
     val surname: String? = null,
     val name: String? = null,
     val lastname: String? = null,

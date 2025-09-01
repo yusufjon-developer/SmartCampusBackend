@@ -345,7 +345,40 @@ SELECT
 FROM (SELECT TOP (@authStudents) n FROM (SELECT ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) as n FROM sys.all_columns) t) nums
 WHERE NOT EXISTS (SELECT 1 FROM dbo.Users WHERE username = CONCAT('authtest_student_', n));
 
--- 2) Give some individual permissions (Access_Grants)
+-- 2) === NEW: Update Users to link with Profiles from SmartCampus DB ===
+-- This assumes a linked server or synonym setup allows access to SmartCampus.dbo.Students/Teachers
+-- If not, this part needs to be run in a context where both DBs are accessible or via application logic.
+
+-- Update student_profile_id for student users
+-- This links users like 'authtest_student_1' to student records like 'Surn1 Name1 Last1'
+-- Note: This is a simplified matching logic based on the pattern used in PART A.
+-- In a real scenario, you'd have a more robust way to link users to profiles.
+PRINT '-> Linking Users to Student Profiles...';
+UPDATE u
+SET u.student_profile_id = s.id
+FROM dbo.Users u
+         JOIN [SmartCampus].[dbo].[Students] s -- Adjust schema/table names if needed
+              ON u.username = REPLACE(CONCAT('authtest_student_', s.id), ' ', '') -- Simple mapping logic
+WHERE u.username LIKE 'authtest_student_%'
+  AND u.student_profile_id IS NULL; -- Only update if not already set
+
+-- Update teacher_profile_id for teacher users
+PRINT '-> Linking Users to Teacher Profiles...';
+UPDATE u
+SET u.teacher_profile_id = t.id
+FROM dbo.Users u
+         JOIN [SmartCampus].[dbo].[Teachers] t -- Adjust schema/table names if needed
+              ON u.username = REPLACE(CONCAT('authtest_teacher_', t.id), ' ', '') -- Simple mapping logic
+WHERE u.username LIKE 'authtest_teacher_%'
+  AND u.teacher_profile_id IS NULL; -- Only update if not already set
+
+-- Check if linking worked
+IF EXISTS (SELECT 1 FROM dbo.Users WHERE username LIKE 'authtest_student_%' AND student_profile_id IS NULL)
+    PRINT 'Warning: Some student users could not be linked to profiles.';
+IF EXISTS (SELECT 1 FROM dbo.Users WHERE username LIKE 'authtest_teacher_%' AND teacher_profile_id IS NULL)
+    PRINT 'Warning: Some teacher users could not be linked to profiles.';
+
+-- 3) Give some individual permissions (Access_Grants)
 PRINT '-> Creating Access_Grants...';
 IF NOT EXISTS (SELECT 1 FROM dbo.Permissions WHERE name = 'ApproveDevices')
     INSERT INTO dbo.Permissions(name, description) VALUES ('ApproveDevices', 'Allows user to approve or reject new devices for login.');
@@ -364,7 +397,7 @@ IF @sudoId IS NOT NULL AND @permId IS NOT NULL
         WHERE NOT EXISTS (SELECT 1 FROM dbo.Access_Grants WHERE granted_to = u.id AND permission_id = @permId);
     END
 
--- 3) Add a few UserDevices (idempotent)
+-- 4) Add a few UserDevices (idempotent)
 IF OBJECT_ID('dbo.UserDevices','U') IS NOT NULL
     BEGIN
         PRINT '-> Inserting a few UserDevices...';

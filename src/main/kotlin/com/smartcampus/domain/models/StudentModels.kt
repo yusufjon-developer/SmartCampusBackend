@@ -35,22 +35,13 @@ data class StudentSensitiveDto(
 @Serializable
 data class StudentDetailsDto(
     val id: Int,
+    val email: String? = null,
     val surname: String? = null,
     val name: String? = null,
     val lastname: String? = null,
     val birthday: String? = null,
     val group: GroupDto? = null,
     val phoneNumber: String? = null,
-)
-
-@Serializable
-data class StudentCreateRequest(
-    val surname: String?,
-    val name: String?,
-    val lastname: String?,
-    val birthday: String?, // ISO
-    val groupId: Int?,
-    val phoneNumber: String?
 )
 
 @Serializable

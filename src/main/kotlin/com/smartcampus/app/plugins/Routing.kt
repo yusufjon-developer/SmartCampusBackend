@@ -2,6 +2,8 @@ package com.smartcampus.app.plugins
 
 import com.smartcampus.domain.security.AccessControlService
 import com.smartcampus.domain.security.models.UserSessionPrincipal
+import com.smartcampus.features.auditoriums.AuditoriumsService
+import com.smartcampus.features.auditoriums.auditoriumsRoutes
 import com.smartcampus.features.auth.AuthService
 import com.smartcampus.features.auth.authRoutes
 import com.smartcampus.features.curriculums.CurriculumsService
@@ -52,6 +54,7 @@ fun Application.configureRouting() {
     val subjectsService by inject<SubjectsService>()
     val workloadService by inject<WorkloadService>()
     val scheduleService by inject<ScheduleService>()
+    val auditoriumsService by inject<AuditoriumsService>()
 
     attributes.put(AccessControlKey, accessControlService)
 
@@ -95,6 +98,7 @@ fun Application.configureRouting() {
             studentsRoutes(studentsService)
             teachersRoutes(teachersService)
             curriculumsRoutes(curriculumsService)
+            auditoriumsRoutes(auditoriumsService)
             groupsRoutes(groupsService)
             disciplinesRoutes(disciplinesService)
             subjectsRoutes(subjectsService)

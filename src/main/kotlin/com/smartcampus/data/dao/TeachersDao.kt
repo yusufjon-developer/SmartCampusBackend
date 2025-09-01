@@ -1,5 +1,6 @@
 package com.smartcampus.data.dao
 
+import com.smartcampus.data.database.auth.entities.UsersTable
 import com.smartcampus.data.database.smartCampus.SmartCampusDb
 import com.smartcampus.data.database.smartCampus.entities.TeachersInfoTable
 import com.smartcampus.data.database.smartCampus.entities.TeachersTable
@@ -11,6 +12,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.leftJoin
 import org.jetbrains.exposed.v1.core.statements.api.ExposedBlob
 import org.jetbrains.exposed.v1.jdbc.*
 import org.slf4j.LoggerFactory
@@ -58,7 +60,11 @@ class TeachersDao(private val db: SmartCampusDb) {
     }
 
     suspend fun getTeacherById(id: Int): TeacherDetailsDto? = db.query {
-        val row = TeachersTable.selectAll().where { TeachersTable.id eq id }.singleOrNull() ?: return@query null
+        val row = TeachersTable
+            .leftJoin(UsersTable, { TeachersTable.id }, { UsersTable.teacherProfileId })
+            .select(TeachersTable.columns + UsersTable.email)
+            .where { TeachersTable.id eq id }
+            .singleOrNull() ?: return@query null
         row.toTeacherDetailsDto()
     }
 
@@ -68,7 +74,7 @@ class TeachersDao(private val db: SmartCampusDb) {
     }
 
     suspend fun updateTeacher(id: Int, request: TeacherUpdateRequest, performingUserId: Int): TeacherDetailsDto? = db.query {
-        val existing = TeachersTable.selectAll().where { TeachersTable.id eq id }.singleOrNull() ?: return@query null
+        TeachersTable.selectAll().where { TeachersTable.id eq id }.singleOrNull() ?: return@query null
 
         TeachersTable.update({ TeachersTable.id eq id }) {
             request.surname?.let { v -> it[TeachersTable.surname] = v }
@@ -109,7 +115,10 @@ class TeachersDao(private val db: SmartCampusDb) {
 
         log.info("Teacher $id updated by user $performingUserId")
 
-        val freshRow = TeachersTable.selectAll().where { TeachersTable.id eq id }.singleOrNull() ?: return@query null
+        val freshRow = TeachersTable.leftJoin(UsersTable, { TeachersTable.id }, { UsersTable.teacherProfileId })
+            .select(TeachersTable.columns + UsersTable.email)
+            .where { TeachersTable.id eq id }
+            .singleOrNull() ?: return@query null
         freshRow.toTeacherDetailsDto()
     }
 
@@ -133,6 +142,7 @@ class TeachersDao(private val db: SmartCampusDb) {
     private fun ResultRow.toTeacherDetailsDto(): TeacherDetailsDto =
         TeacherDetailsDto(
             id = this[TeachersTable.id].value,
+            email = this[UsersTable.email],
             surname = this[TeachersTable.surname],
             name = this[TeachersTable.name],
             lastname = this[TeachersTable.lastname],
