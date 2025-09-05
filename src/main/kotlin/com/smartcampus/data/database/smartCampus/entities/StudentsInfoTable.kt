@@ -2,7 +2,7 @@ package com.smartcampus.data.database.smartCampus.entities
 
 import org.jetbrains.exposed.v1.core.Table
 
-object StudentsInfoTable : Table("Students_Info") {
+object StudentsInfoTable : Table("SmartCampus.dbo.Students_Info") {
     val studentId = reference("student_id", StudentsTable)
     override val primaryKey = PrimaryKey(studentId)
 

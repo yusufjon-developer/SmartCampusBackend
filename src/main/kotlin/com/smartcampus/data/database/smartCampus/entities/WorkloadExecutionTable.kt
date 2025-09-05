@@ -5,7 +5,7 @@ import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.datetime
 import java.time.LocalDateTime
 
-object WorkloadExecutionTable : IntIdTable(name = "Workload_Execution") {
+object WorkloadExecutionTable : IntIdTable(name = "SmartCampus.dbo.Workload_Execution") {
     val workloadId = reference("workload_id", TeachersWorkloadTable)
     val executionDate = date("execution_date")
     val hours = decimal("hours", precision = 5, scale = 2)

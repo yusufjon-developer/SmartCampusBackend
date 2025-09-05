@@ -4,7 +4,7 @@ import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.datetime
 
-object ScheduleTable : IntIdTable("Schedule") {
+object ScheduleTable : IntIdTable("SmartCampus.dbo.Schedule") {
     val workloadId = reference("workload_id", TeachersWorkloadTable).nullable()
     val day = date("day").nullable()
     val startTime = datetime("start_time")

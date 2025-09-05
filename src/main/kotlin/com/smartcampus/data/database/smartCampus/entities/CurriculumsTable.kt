@@ -3,7 +3,7 @@ package com.smartcampus.data.database.smartCampus.entities
 import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 import org.jetbrains.exposed.v1.javatime.date
 
-object CurriculumsTable : IntIdTable("Curriculums") {
+object CurriculumsTable : IntIdTable("SmartCampus.dbo.Curriculums") {
     val specialityId = reference("speciality_id", SpecialitiesTable).nullable()
     val year = integer("year").nullable()
     val profile = varchar("profile", 255).nullable()

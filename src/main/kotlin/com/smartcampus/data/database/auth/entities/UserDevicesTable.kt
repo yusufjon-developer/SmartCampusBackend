@@ -4,7 +4,7 @@ import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 import org.jetbrains.exposed.v1.javatime.CurrentDateTime
 import org.jetbrains.exposed.v1.javatime.datetime
 
-object UserDevicesTable : IntIdTable("UserDevices") {
+object UserDevicesTable : IntIdTable("SmartCampusAuth.dbo.UserDevices") {
     val userId = reference("user_id", UsersTable)
     val deviceUuid = varchar("device_uuid", 255)
     val isApproved = bool("is_approved").default(false)

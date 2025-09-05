@@ -3,7 +3,7 @@ package com.smartcampus.data.database.auth.entities
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
 
-object RolePermissionsTable : Table("Role_Permissions") {
+object RolePermissionsTable : Table("SmartCampusAuth.dbo.Role_Permissions") {
     val roleId = reference("role_id", RolesTable.id, onDelete = ReferenceOption.CASCADE)
     val permissionId =
         reference("permission_id", PermissionsTable.id, onDelete = ReferenceOption.CASCADE)

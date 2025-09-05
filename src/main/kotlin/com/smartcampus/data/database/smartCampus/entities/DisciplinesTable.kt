@@ -2,7 +2,7 @@ package com.smartcampus.data.database.smartCampus.entities
 
 import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 
-object DisciplinesTable : IntIdTable("Disciplines") {
+object DisciplinesTable : IntIdTable("SmartCampus.dbo.Disciplines") {
     val subjectId = reference("subject_id", SubjectsTable).nullable()
     val semester = integer("semester").nullable()
     val specialityId = reference("speciality_id", SpecialitiesTable).nullable()

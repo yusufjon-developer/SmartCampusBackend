@@ -5,7 +5,7 @@ import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.datetime
 import java.time.LocalDateTime
 
-object AcademicWeeksTable : IntIdTable(name = "Academic_Weeks") {
+object AcademicWeeksTable : IntIdTable(name = "SmartCampus.dbo.Academic_Weeks") {
     val academicYear = varchar("academic_year", 20)
     val weekNumber = integer("week_number")
     val startDate = date("start_date")
