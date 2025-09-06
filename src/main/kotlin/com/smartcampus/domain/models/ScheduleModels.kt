@@ -10,10 +10,10 @@ data class ScheduleDto(
     val day: String,         // "yyyy-MM-dd"
     val startTime: String,   // "HH:mm"
     val endTime: String,     // "HH:mm"
-    val teacherId: Int? = null,
-    val groupId: Int? = null,
-    val disciplineId: Int? = null,
-    val auditoriumId: Int? = null,
+    val teacher: TeacherDetailsDto? = null,
+    val group: GroupDto? = null,
+    val discipline: DisciplineDto? = null,
+    val auditorium: AuditoriumDetailsDto? = null,
     val type: String? = null
 )
 

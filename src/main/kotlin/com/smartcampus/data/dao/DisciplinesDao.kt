@@ -62,7 +62,6 @@ class DisciplinesDao(private val db: SmartCampusDb) {
 
             DisciplineDto(
                 id = row[d.id].value,
-                subjectId = row[d.subjectId]?.value,
                 subject = subj,
                 semester = row[d.semester],
                 specialityId = row[d.specialityId]?.value,
@@ -114,7 +113,6 @@ class DisciplinesDao(private val db: SmartCampusDb) {
 
                 DisciplineDto(
                     id = row[d.id].value,
-                    subjectId = row[d.subjectId]?.value,
                     subject = subj,
                     semester = row[d.semester],
                     specialityId = row[d.specialityId]?.value,

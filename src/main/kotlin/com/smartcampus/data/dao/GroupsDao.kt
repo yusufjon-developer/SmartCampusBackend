@@ -42,14 +42,14 @@ class GroupsDao(private val db: SmartCampusDb) {
         val gId = this[GroupsTable.id].value
         val gName = this[GroupsTable.name]
         val gCourse = this[GroupsTable.course]
-        val specId = this[GroupsTable.specId]?.value
+        val specId = this[GroupsTable.specialityId]?.value
         val speciality = specId?.let { SpecialityDto(it, this[SpecialitiesTable.name]) }
         return GroupDto(id = gId, name = gName, course = gCourse, speciality = speciality)
     }
 
     suspend fun listGroups(params: PageRequestParams): PaginatedResult<GroupDto> = db.query {
         val baseQuery = GroupsTable
-            .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
             .select(GroupsTable.columns + SpecialitiesTable.columns)
             .applyPaginationAndSorting(params, SortableFields.GROUPS, GroupsTable.name)
 
@@ -62,7 +62,7 @@ class GroupsDao(private val db: SmartCampusDb) {
 
     suspend fun getGroupById(id: Int): GroupDto? = db.query {
         val row = GroupsTable
-            .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
             .select(GroupsTable.columns + SpecialitiesTable.columns)
             .where { GroupsTable.id eq id }
             .singleOrNull() ?: return@query null
@@ -72,11 +72,11 @@ class GroupsDao(private val db: SmartCampusDb) {
     suspend fun createGroup(req: GroupCreateRequest): GroupDto = db.query {
         val newId = GroupsTable.insertAndGetId {
             it[name] = req.name
-            it[GroupsTable.specId] = req.specId?.let { EntityID(it, SpecialitiesTable) }
+            it[GroupsTable.specialityId] = req.specId?.let { EntityID(it, SpecialitiesTable) }
             it[GroupsTable.course] = req.course
         }
         val row = GroupsTable
-            .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
             .select(GroupsTable.columns + SpecialitiesTable.columns)
             .where { GroupsTable.id eq newId }
             .single()
@@ -88,13 +88,13 @@ class GroupsDao(private val db: SmartCampusDb) {
 
         GroupsTable.update({ GroupsTable.id eq id }) {
             req.name?.let { v -> it[GroupsTable.name] = v }
-            if (req.specId != null) it[GroupsTable.specId] = EntityID(req.specId, SpecialitiesTable)
-            if (req.specId == null && req.specId != exists[GroupsTable.specId]?.value) { /* ignore - keep as-is */ }
+            if (req.specId != null) it[GroupsTable.specialityId] = EntityID(req.specId, SpecialitiesTable)
+            if (req.specId == null && req.specId != exists[GroupsTable.specialityId]?.value) { /* ignore - keep as-is */ }
             req.course?.let { v -> it[GroupsTable.course] = v }
         }
 
         val row = GroupsTable
-            .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
             .select(GroupsTable.columns + SpecialitiesTable.columns)
             .where { GroupsTable.id eq id }
             .singleOrNull() ?: return@query null

@@ -2,9 +2,7 @@ package com.smartcampus.data.dao
 
 import com.smartcampus.data.database.smartCampus.SmartCampusDb
 import com.smartcampus.data.database.smartCampus.entities.*
-import com.smartcampus.domain.models.ScheduleCreateRequest
-import com.smartcampus.domain.models.ScheduleDto
-import com.smartcampus.domain.models.ScheduleUpdateRequest
+import com.smartcampus.domain.models.*
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.greater
@@ -18,27 +16,28 @@ import java.time.LocalTime
 
 class ScheduleDao(private val db: SmartCampusDb) {
 
-    private fun ResultRow.toDto(): ScheduleDto {
-        return ScheduleDto(
-            id = this[ScheduleTable.id].value,
-            workloadId = this[ScheduleTable.workloadId]?.value,
-            day = this[ScheduleTable.day]?.toString() ?: "",
-            startTime = try {
-                this[ScheduleTable.startTime].toLocalTime().toString()
-            } catch (e: Exception) {
-                ""
-            },
-            endTime = try {
-                this[ScheduleTable.endTime].toLocalTime().toString()
-            } catch (e: Exception) {
-                ""
-            },
-            teacherId = this[ScheduleTable.teacherId]?.value,
-            groupId = this[ScheduleTable.groupId]?.value,
-            disciplineId = this[ScheduleTable.disciplineId]?.value,
-            auditoriumId = this[ScheduleTable.auditoriumId]?.value,
-            type = this[ScheduleTable.type]
-        )
+    suspend fun listSchedulesWithDetails(
+        day: LocalDate? = null,
+        teacherId: Int? = null,
+        groupId: Int? = null,
+        auditoriumId: Int? = null
+    ): List<ScheduleDto> = db.query {
+        val query = ScheduleTable
+            .leftJoin(TeachersTable, { ScheduleTable.teacherId }, { TeachersTable.id })
+            .leftJoin(GroupsTable, { ScheduleTable.groupId }, { GroupsTable.id })
+            .leftJoin(DisciplinesTable, { ScheduleTable.disciplineId }, { DisciplinesTable.id })
+            .leftJoin(AuditoriumsTable, { ScheduleTable.auditoriumId }, { AuditoriumsTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
+            .leftJoin(SubjectsTable, { DisciplinesTable.subjectId }, { SubjectsTable.id })
+            .selectAll()
+
+        if (day != null) query.andWhere { ScheduleTable.day eq day }
+        if (teacherId != null) query.andWhere { ScheduleTable.teacherId eq EntityID(teacherId, TeachersTable) }
+        if (groupId != null) query.andWhere { ScheduleTable.groupId eq EntityID(groupId, GroupsTable) }
+        if (auditoriumId != null) query.andWhere { ScheduleTable.auditoriumId eq EntityID(auditoriumId, AuditoriumsTable) }
+
+        query.orderBy(ScheduleTable.day to SortOrder.ASC, ScheduleTable.startTime to SortOrder.ASC)
+            .map { it.toDetailedDto() }
     }
 
     suspend fun listSchedules(
@@ -46,18 +45,19 @@ class ScheduleDao(private val db: SmartCampusDb) {
         teacherId: Int? = null,
         groupId: Int? = null,
         auditoriumId: Int? = null
-    ): List<ScheduleDto> = db.query {
-        val q = ScheduleTable.selectAll()
-        if (day != null) q.andWhere { ScheduleTable.day eq day }
-        if (teacherId != null) q.andWhere { ScheduleTable.teacherId eq EntityID(teacherId, TeachersTable) }
-        if (groupId != null) q.andWhere { ScheduleTable.groupId eq EntityID(groupId, GroupsTable) }
-        if (auditoriumId != null) q.andWhere { ScheduleTable.auditoriumId eq EntityID(auditoriumId, AuditoriumsTable) }
-        q.orderBy(ScheduleTable.day to SortOrder.ASC, ScheduleTable.startTime to SortOrder.ASC)
-            .map { it.toDto() }
-    }
+    ): List<ScheduleDto> = listSchedulesWithDetails(day, teacherId, groupId, auditoriumId)
 
     suspend fun getById(id: Int): ScheduleDto? = db.query {
-        ScheduleTable.selectAll().where { ScheduleTable.id eq id }.singleOrNull()?.toDto()
+        ScheduleTable
+            .leftJoin(TeachersTable, { ScheduleTable.teacherId }, { TeachersTable.id })
+            .leftJoin(GroupsTable, { ScheduleTable.groupId }, { GroupsTable.id })
+            .leftJoin(DisciplinesTable, { ScheduleTable.disciplineId }, { DisciplinesTable.id })
+            .leftJoin(AuditoriumsTable, { ScheduleTable.auditoriumId }, { AuditoriumsTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
+            .leftJoin(SubjectsTable, { DisciplinesTable.subjectId }, { SubjectsTable.id })
+            .selectAll()
+            .where { ScheduleTable.id eq id }
+            .singleOrNull()?.toDetailedDto()
     }
 
     suspend fun create(req: ScheduleCreateRequest): ScheduleDto? = db.query {
@@ -76,7 +76,17 @@ class ScheduleDao(private val db: SmartCampusDb) {
             req.auditoriumId?.let { a -> it[ScheduleTable.auditoriumId] = EntityID(a, AuditoriumsTable) }
             it[ScheduleTable.type] = req.type
         }
-        ScheduleTable.selectAll().where { ScheduleTable.id eq newId }.single().toDto()
+        ScheduleTable
+            .leftJoin(TeachersTable, { ScheduleTable.teacherId }, { TeachersTable.id })
+            .leftJoin(GroupsTable, { ScheduleTable.groupId }, { GroupsTable.id })
+            .leftJoin(DisciplinesTable, { ScheduleTable.disciplineId }, { DisciplinesTable.id })
+            .leftJoin(AuditoriumsTable, { ScheduleTable.auditoriumId }, { AuditoriumsTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
+            .leftJoin(SubjectsTable, { DisciplinesTable.subjectId }, { SubjectsTable.id })
+            .selectAll()
+            .where { ScheduleTable.id eq newId }
+            .single()
+            .toDetailedDto()
     }
 
     suspend fun update(id: Int, req: ScheduleUpdateRequest): ScheduleDto? = db.query {
@@ -95,7 +105,17 @@ class ScheduleDao(private val db: SmartCampusDb) {
             req.type?.let { ty -> upd[ScheduleTable.type] = ty }
         }
 
-        ScheduleTable.selectAll().where { ScheduleTable.id eq id }.single().toDto()
+        ScheduleTable
+            .leftJoin(TeachersTable, { ScheduleTable.teacherId }, { TeachersTable.id })
+            .leftJoin(GroupsTable, { ScheduleTable.groupId }, { GroupsTable.id })
+            .leftJoin(DisciplinesTable, { ScheduleTable.disciplineId }, { DisciplinesTable.id })
+            .leftJoin(AuditoriumsTable, { ScheduleTable.auditoriumId }, { AuditoriumsTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
+            .leftJoin(SubjectsTable, { DisciplinesTable.subjectId }, { SubjectsTable.id })
+            .selectAll()
+            .where { ScheduleTable.id eq id }
+            .single()
+            .toDetailedDto()
     }
 
     suspend fun delete(id: Int): Boolean = db.query {
@@ -131,9 +151,17 @@ class ScheduleDao(private val db: SmartCampusDb) {
         var finalCondition: Op<Boolean> = overlap and combinedEntityCond
         if (excludeId != null) finalCondition = finalCondition and (ScheduleTable.id neq excludeId)
 
-        ScheduleTable.selectAll().where { finalCondition }
+        ScheduleTable
+            .leftJoin(TeachersTable, { ScheduleTable.teacherId }, { TeachersTable.id })
+            .leftJoin(GroupsTable, { ScheduleTable.groupId }, { GroupsTable.id })
+            .leftJoin(DisciplinesTable, { ScheduleTable.disciplineId }, { DisciplinesTable.id })
+            .leftJoin(AuditoriumsTable, { ScheduleTable.auditoriumId }, { AuditoriumsTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
+            .leftJoin(SubjectsTable, { DisciplinesTable.subjectId }, { SubjectsTable.id })
+            .selectAll()
+            .where { finalCondition }
             .orderBy(ScheduleTable.startTime to SortOrder.ASC)
-            .map { it.toDto() }
+            .map { it.toDetailedDto() }
     }
 
     suspend fun listSchedulesByTeacherAndPeriodWithDetails(
@@ -141,14 +169,88 @@ class ScheduleDao(private val db: SmartCampusDb) {
         startDate: LocalDate,
         endDate: LocalDate
     ): List<ScheduleDto> = db.query {
-        ScheduleTable.selectAll()
+        ScheduleTable
+            .leftJoin(TeachersTable, { ScheduleTable.teacherId }, { TeachersTable.id })
+            .leftJoin(GroupsTable, { ScheduleTable.groupId }, { GroupsTable.id })
+            .leftJoin(DisciplinesTable, { ScheduleTable.disciplineId }, { DisciplinesTable.id })
+            .leftJoin(AuditoriumsTable, { ScheduleTable.auditoriumId }, { AuditoriumsTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
+            .leftJoin(SubjectsTable, { DisciplinesTable.subjectId }, { SubjectsTable.id })
+            .selectAll()
             .where {
                 (ScheduleTable.teacherId eq EntityID(teacherId, TeachersTable)) and
                         (ScheduleTable.day greaterEq startDate) and
                         (ScheduleTable.day lessEq endDate)
             }
             .orderBy(ScheduleTable.day to SortOrder.ASC, ScheduleTable.startTime to SortOrder.ASC)
-            .map { it.toDto() }
+            .map { it.toDetailedDto() }
     }
 
+    private fun ResultRow.toDetailedDto(): ScheduleDto {
+        return ScheduleDto(
+            id = this[ScheduleTable.id].value,
+            workloadId = this[ScheduleTable.workloadId]?.value,
+            day = this[ScheduleTable.day]?.toString() ?: "",
+            startTime = try {
+                this[ScheduleTable.startTime].toLocalTime().toString()
+            } catch (e: Exception) {
+                ""
+            },
+            endTime = try {
+                this[ScheduleTable.endTime].toLocalTime().toString()
+            } catch (e: Exception) {
+                ""
+            },
+            teacher = this[TeachersTable.id]?.let { teacherId ->
+                TeacherDetailsDto(
+                    id = teacherId.value,
+                    surname = this[TeachersTable.surname],
+                    name = this[TeachersTable.name],
+                    lastname = this[TeachersTable.lastname],
+                    birthday = this[TeachersTable.birthday]?.toString(),
+                    phoneNumber = this[TeachersTable.phoneNumber]
+                )
+            },
+            group = this[GroupsTable.id]?.let { groupId ->
+                GroupDto(
+                    id = groupId.value,
+                    name = this[GroupsTable.name],
+                    course = this[GroupsTable.course],
+                    speciality = this[SpecialitiesTable.id]?.let { specialityId ->
+                        SpecialityDto(
+                            id = specialityId.value,
+                            name = this[SpecialitiesTable.name]
+                        )
+                    }
+                )
+            },
+            discipline = this[DisciplinesTable.id]?.let { disciplineId ->
+                DisciplineDto(
+                    id = disciplineId.value,
+                    subject = this[SubjectsTable.id]?.let { subjectId ->
+                        SubjectDto(
+                            id = subjectId.value,
+                            name = this[SubjectsTable.name]
+                        )
+                    },
+                    semester = this[DisciplinesTable.semester],
+                    specialityId = this[DisciplinesTable.specialityId]?.value,
+                    course = this[DisciplinesTable.course],
+                    lecture = this[DisciplinesTable.lecture],
+                    practice = this[DisciplinesTable.practice],
+                    lab = this[DisciplinesTable.lab],
+                    seminar = this[DisciplinesTable.seminar],
+                    control = this[DisciplinesTable.control]
+                )
+            },
+            auditorium = this[AuditoriumsTable.id]?.let { auditoriumId ->
+                AuditoriumDetailsDto(
+                    id = auditoriumId.value,
+                    number = this[AuditoriumsTable.number],
+                    type = this[AuditoriumsTable.type]
+                )
+            },
+            type = this[ScheduleTable.type]
+        )
+    }
 }

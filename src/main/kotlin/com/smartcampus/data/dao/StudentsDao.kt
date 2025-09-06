@@ -46,7 +46,7 @@ class StudentsDao(private val db: SmartCampusDb) {
         // Left join Groups and Specialities so we can return nested objects (group + speciality)
         val baseQuery = StudentsTable
             .leftJoin(GroupsTable, { StudentsTable.groupId }, { GroupsTable.id })
-            .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
             .select(StudentsTable.columns + GroupsTable.columns + SpecialitiesTable.columns)
             .applyPaginationAndSorting(params, SortableFields.STUDENTS, StudentsTable.name)
 
@@ -68,7 +68,7 @@ class StudentsDao(private val db: SmartCampusDb) {
     suspend fun getStudentById(id: Int): StudentDetailsDto? = db.query {
         val row = StudentsTable
             .leftJoin(GroupsTable, { StudentsTable.groupId }, { GroupsTable.id })
-            .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
             .leftJoin(UsersTable, { StudentsTable.id }, { UsersTable.studentProfileId })
             .select(StudentsTable.columns + GroupsTable.columns + SpecialitiesTable.columns + UsersTable.email)
             .where { StudentsTable.id eq id }
@@ -149,7 +149,7 @@ class StudentsDao(private val db: SmartCampusDb) {
         // Return fresh details including sensitive info (if exists)
         val rowAfter = StudentsTable
             .leftJoin(GroupsTable, { StudentsTable.groupId }, { GroupsTable.id })
-            .leftJoin(SpecialitiesTable, { GroupsTable.specId }, { SpecialitiesTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
             .leftJoin(UsersTable, { StudentsTable.id }, { UsersTable.studentProfileId })
             .select(StudentsTable.columns + GroupsTable.columns + SpecialitiesTable.columns + UsersTable.email)
             .where { StudentsTable.id eq id }
@@ -197,7 +197,7 @@ class StudentsDao(private val db: SmartCampusDb) {
         val gId = runCatching { this[GroupsTable.id].value }.getOrNull() ?: return null
         val gName = runCatching { this[GroupsTable.name] }.getOrNull()
         val gCourse = runCatching { this[GroupsTable.course] }.getOrNull()
-        val specId = runCatching { this[GroupsTable.specId]?.value }.getOrNull()
+        val specId = runCatching { this[GroupsTable.specialityId]?.value }.getOrNull()
 
         val speciality = specId?.let {
             val sName = runCatching { this[SpecialitiesTable.name] }.getOrNull()

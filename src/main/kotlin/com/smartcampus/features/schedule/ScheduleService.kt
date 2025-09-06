@@ -129,12 +129,20 @@ class ScheduleService(private val dao: ScheduleDao, private val workloadDao: com
             ScheduleSlot(LocalTime.of(14, 45), LocalTime.of(16, 15))
         )
 
-        // 2. Получим все расписания преподавателя на этот период
-        // Получим список ScheduleDto с groupId и disciplineId
-        val occupiedSchedules = dao.listSchedulesByTeacherAndPeriodWithDetails(teacherId, startDay, endDay)
+        // 2. Получим все расписания преподавателя на этот период с деталями
+        val occupiedSchedules = dao.listSchedulesWithDetails(
+            teacherId = teacherId,
+            day = startDay, // Будет использоваться как начальная дата
+        ).filter { schedule ->
+            try {
+                val scheduleDate = LocalDate.parse(schedule.day)
+                scheduleDate >= startDay && scheduleDate <= endDay
+            } catch (e: Exception) {
+                false
+            }
+        }
 
         // 3. Создадим карту: Дата -> Занятые слоты (LocalTime начала -> ScheduleDto)
-        // Это позволит нам не только знать, занят слот или нет, но и получить детали занятия
         val occupiedSlotsByDay = mutableMapOf<LocalDate, MutableList<ScheduleSlotWithDetails>>()
         occupiedSchedules.forEach { schedule ->
             try {
@@ -174,10 +182,10 @@ class ScheduleService(private val dao: ScheduleDao, private val workloadDao: com
                         SlotInfo(
                             startTime = slot.start.toString(),
                             endTime = slot.end.toString(),
-                            groupId = scheduleDto.groupId,
-                            groupName = scheduleDto.groupId?.let { "Группа $it" }, // Здесь можно получить настоящее имя группы из БД или кэша
-                            disciplineId = scheduleDto.disciplineId,
-                            disciplineName = scheduleDto.disciplineId?.let { "Предмет $it" }, // Здесь можно получить настоящее имя дисциплины
+                            groupId = scheduleDto.group?.id,
+                            groupName = scheduleDto.group?.name,
+                            disciplineId = scheduleDto.discipline?.id,
+                            disciplineName = scheduleDto.discipline?.subject?.name,
                             isAvailable = false // Слот занят
                         )
                     )
@@ -210,5 +218,4 @@ class ScheduleService(private val dao: ScheduleDao, private val workloadDao: com
 
         return WeeklyScheduleResponse(days = days)
     }
-
 }

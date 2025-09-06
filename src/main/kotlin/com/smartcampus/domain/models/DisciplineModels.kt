@@ -5,7 +5,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class DisciplineDto(
     val id: Int,
-    val subjectId: Int? = null,
     val subject: SubjectDto? = null,
     val semester: Int? = null,
     val specialityId: Int? = null,

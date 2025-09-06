@@ -99,7 +99,6 @@ class CurriculumsDao(private val db: SmartCampusDb) {
                 val disciplineDto = disciplineId?.let {
                     DisciplineDto(
                         id = it,
-                        subjectId = row[d.subjectId]?.value,
                         subject = subj,
                         semester = row[d.semester],
                         specialityId = row[d.specialityId]?.value,
@@ -306,7 +305,6 @@ class CurriculumsDao(private val db: SmartCampusDb) {
             val disciplineDto = disciplineId?.let {
                 DisciplineDto(
                     id = it,
-                    subjectId = row[d.subjectId]?.value,
                     subject = subj,
                     semester = row[d.semester],
                     specialityId = row[d.specialityId]?.value,

@@ -4,6 +4,6 @@ import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 
 object GroupsTable : IntIdTable("SmartCampus.dbo.Groups") {
     val name = varchar("name", 255)
-    val specId = reference("spec_id", SpecialitiesTable).nullable()
+    val specialityId = reference("spec_id", SpecialitiesTable).nullable()
     val course = integer("course").nullable()
 }
