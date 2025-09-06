@@ -22,9 +22,17 @@ class ScheduleDao(private val db: SmartCampusDb) {
         return ScheduleDto(
             id = this[ScheduleTable.id].value,
             workloadId = this[ScheduleTable.workloadId]?.value,
-            day = this[ScheduleTable.day].toString(),
-            startTime = this[ScheduleTable.startTime].toString(),
-            endTime = this[ScheduleTable.endTime].toString(),
+            day = this[ScheduleTable.day]?.toString() ?: "",
+            startTime = try {
+                this[ScheduleTable.startTime].toLocalTime().toString()
+            } catch (e: Exception) {
+                ""
+            },
+            endTime = try {
+                this[ScheduleTable.endTime].toLocalTime().toString()
+            } catch (e: Exception) {
+                ""
+            },
             teacherId = this[ScheduleTable.teacherId]?.value,
             groupId = this[ScheduleTable.groupId]?.value,
             disciplineId = this[ScheduleTable.disciplineId]?.value,
@@ -94,13 +102,6 @@ class ScheduleDao(private val db: SmartCampusDb) {
         ScheduleTable.deleteWhere { ScheduleTable.id eq id } > 0
     }
 
-    /**
-     * Find conflicts:
-     * existing.start < newEnd AND existing.end > newStart
-     * AND (existing.teacherId == teacherId OR existing.groupId == groupId OR existing.auditoriumId == auditoriumId)
-     *
-     * excludeId — when updating, exclude own row.
-     */
     suspend fun findConflicts(
         day: LocalDate,
         start: LocalTime,
@@ -134,4 +135,20 @@ class ScheduleDao(private val db: SmartCampusDb) {
             .orderBy(ScheduleTable.startTime to SortOrder.ASC)
             .map { it.toDto() }
     }
+
+    suspend fun listSchedulesByTeacherAndPeriodWithDetails(
+        teacherId: Int,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<ScheduleDto> = db.query {
+        ScheduleTable.selectAll()
+            .where {
+                (ScheduleTable.teacherId eq EntityID(teacherId, TeachersTable)) and
+                        (ScheduleTable.day greaterEq startDate) and
+                        (ScheduleTable.day lessEq endDate)
+            }
+            .orderBy(ScheduleTable.day to SortOrder.ASC, ScheduleTable.startTime to SortOrder.ASC)
+            .map { it.toDto() }
+    }
+
 }
