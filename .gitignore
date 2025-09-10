@@ -34,3 +34,5 @@ out/
 
 ### VS Code ###
 .vscode/
+/start_server_dev.bat
+/databases_backup.bat
