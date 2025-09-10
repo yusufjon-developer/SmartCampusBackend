@@ -8,13 +8,16 @@ import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.repositories.AuditoriumsRepository
 import org.slf4j.LoggerFactory
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class AuditoriumsService(private val repository: AuditoriumsRepository) {
     private val log = LoggerFactory.getLogger(AuditoriumsService::class.java)
 
-    suspend fun listAuditoriums(params: PageRequestParams): PaginatedResult<AuditoriumListItemDto> {
+    suspend fun listAuditoriums(params: PageRequestParams, isAvailable: Boolean, date: String): PaginatedResult<AuditoriumListItemDto> {
         log.debug("Listing auditoriums params=$params")
-        return repository.getAuditoriums(params)
+        val localDate = LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        return repository.getAuditoriums(params, isAvailable, localDate)
     }
 
     suspend fun getAuditoriumById(id: Int): AuditoriumDetailsDto {

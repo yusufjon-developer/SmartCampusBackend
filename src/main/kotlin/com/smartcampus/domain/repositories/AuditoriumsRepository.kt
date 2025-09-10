@@ -7,9 +7,10 @@ import com.smartcampus.domain.models.AuditoriumListItemDto
 import com.smartcampus.domain.models.AuditoriumUpdateRequest
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
+import java.time.LocalDate
 
 interface AuditoriumsRepository {
-    suspend fun getAuditoriums(params: PageRequestParams): PaginatedResult<AuditoriumListItemDto>
+    suspend fun getAuditoriums(params: PageRequestParams, isAvailable: Boolean, date: LocalDate): PaginatedResult<AuditoriumListItemDto>
     suspend fun getAuditoriumById(id: Int): AuditoriumDetailsDto?
     suspend fun createAuditorium(request: AuditoriumCreateRequest): AuditoriumDetailsDto
     suspend fun updateAuditorium(id: Int, request: AuditoriumUpdateRequest): AuditoriumDetailsDto?

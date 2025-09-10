@@ -8,9 +8,10 @@ import com.smartcampus.domain.models.AuditoriumUpdateRequest
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
 import com.smartcampus.domain.repositories.AuditoriumsRepository
+import java.time.LocalDate
 
 class AuditoriumsRepositoryImpl(private val dao: AuditoriumsDao) : AuditoriumsRepository {
-    override suspend fun getAuditoriums(params: PageRequestParams): PaginatedResult<AuditoriumListItemDto> = dao.getAuditoriums(params)
+    override suspend fun getAuditoriums(params: PageRequestParams, isAvailable: Boolean, date: LocalDate): PaginatedResult<AuditoriumListItemDto> = dao.getAuditoriums(params, isAvailable, date)
     override suspend fun getAuditoriumById(id: Int): AuditoriumDetailsDto? = dao.getAuditoriumById(id)
     override suspend fun createAuditorium(request: AuditoriumCreateRequest): AuditoriumDetailsDto = dao.createAuditorium(request)
     override suspend fun updateAuditorium(id: Int, request: AuditoriumUpdateRequest): AuditoriumDetailsDto? = dao.updateAuditorium(id, request)

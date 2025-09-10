@@ -2,6 +2,7 @@ package com.smartcampus.data.dao
 
 import com.smartcampus.data.database.smartCampus.SmartCampusDb
 import com.smartcampus.data.database.smartCampus.entities.AuditoriumsTable
+import com.smartcampus.data.database.smartCampus.entities.ScheduleTable
 import com.smartcampus.domain.models.AuditoriumCreateRequest
 import com.smartcampus.domain.models.AuditoriumDetailsDto
 import com.smartcampus.domain.models.AuditoriumListItemDto
@@ -13,6 +14,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.jdbc.*
+import java.time.LocalDate
 import kotlin.math.ceil
 
 class AuditoriumsDao(private val db: SmartCampusDb) {
@@ -24,7 +26,11 @@ class AuditoriumsDao(private val db: SmartCampusDb) {
         )
     }
 
-    private fun Query.applyPaginationAndSorting(params: PageRequestParams, sortable: Map<String, Column<*>>, default: Column<*>): Query {
+    private fun Query.applyPaginationAndSorting(
+        params: PageRequestParams,
+        sortable: Map<String, Column<*>>,
+        default: Column<*>
+    ): Query {
         val sf = params.sortBy?.lowercase()
         val col = sortable[sf] ?: default
         this.orderBy(col to SortOrder.ASC)
@@ -33,9 +39,21 @@ class AuditoriumsDao(private val db: SmartCampusDb) {
         return this
     }
 
-    suspend fun getAuditoriums(params: PageRequestParams): PaginatedResult<AuditoriumListItemDto> = db.query {
-        val rows = AuditoriumsTable.selectAll().applyPaginationAndSorting(params, SortableFields.AUD, AuditoriumsTable.number).map { it.toListItem() }
-        val total = AuditoriumsTable.selectAll().count()
+    suspend fun getAuditoriums(
+        params: PageRequestParams,
+        isAvailable: Boolean,
+        date: LocalDate
+    ): PaginatedResult<AuditoriumListItemDto> = db.query {
+        val query = AuditoriumsTable.selectAll()
+        if (isAvailable) {
+            query
+                .where { ScheduleTable.auditoriumId neq AuditoriumsTable.id }
+                .andWhere { ScheduleTable.day eq date }
+        }
+        val rows = query
+            .applyPaginationAndSorting(params, SortableFields.AUD, AuditoriumsTable.number)
+            .map { it.toListItem() }
+        val total = query.count()
         val totalPages = if (total == 0L || params.limit <= 0) 0 else ceil(total.toDouble() / params.limit).toInt()
         PaginatedResult(rows, total, totalPages, params.page, params.limit, params.sortBy)
     }
@@ -53,7 +71,6 @@ class AuditoriumsDao(private val db: SmartCampusDb) {
     }
 
     suspend fun updateAuditorium(id: Int, req: AuditoriumUpdateRequest): AuditoriumDetailsDto? = db.query {
-        val existing = AuditoriumsTable.selectAll().where { AuditoriumsTable.id eq id }.singleOrNull() ?: return@query null
         AuditoriumsTable.update({ AuditoriumsTable.id eq id }) {
             if (req.number != null) it[AuditoriumsTable.number] = req.number
             if (req.type != null) it[AuditoriumsTable.type] = req.type
@@ -66,8 +83,16 @@ class AuditoriumsDao(private val db: SmartCampusDb) {
     }
 
     private fun ResultRow.toListItem(): AuditoriumListItemDto =
-        AuditoriumListItemDto(id = this[AuditoriumsTable.id].value, number = this[AuditoriumsTable.number], type = this[AuditoriumsTable.type])
+        AuditoriumListItemDto(
+            id = this[AuditoriumsTable.id].value,
+            number = this[AuditoriumsTable.number],
+            type = this[AuditoriumsTable.type]
+        )
 
     private fun ResultRow.toDetails(): AuditoriumDetailsDto =
-        AuditoriumDetailsDto(id = this[AuditoriumsTable.id].value, number = this[AuditoriumsTable.number], type = this[AuditoriumsTable.type])
+        AuditoriumDetailsDto(
+            id = this[AuditoriumsTable.id].value,
+            number = this[AuditoriumsTable.number],
+            type = this[AuditoriumsTable.type]
+        )
 }

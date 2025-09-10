@@ -12,12 +12,16 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 fun Route.auditoriumsRoutes(service: AuditoriumsService) {
     route("/auditoriums") {
         getWithAccess(null, Permissions.AUDITORIUMS_READ) {
             val params = call.getPageRequestParams()
-            val result = service.listAuditoriums(params)
+            val isAvailable = call.request.queryParameters["available"]?.toBooleanStrictOrNull() ?: false
+            val date = call.request.queryParameters["day"] ?: LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            val result = service.listAuditoriums(params, isAvailable, date)
             call.respond(HttpStatusCode.OK, result)
         }
 
@@ -27,7 +31,7 @@ fun Route.auditoriumsRoutes(service: AuditoriumsService) {
             try {
                 val item = service.getAuditoriumById(id)
                 call.respond(HttpStatusCode.OK, item)
-            } catch (e: NoSuchElementException) {
+            } catch (_: NoSuchElementException) {
                 call.respond(HttpStatusCode.NotFound)
             }
         }
@@ -49,7 +53,7 @@ fun Route.auditoriumsRoutes(service: AuditoriumsService) {
             try {
                 val updated = service.updateAuditorium(id, req)
                 call.respond(HttpStatusCode.OK, updated)
-            } catch (e: NoSuchElementException) {
+            } catch (_: NoSuchElementException) {
                 call.respond(HttpStatusCode.NotFound)
             }
         }
@@ -60,7 +64,7 @@ fun Route.auditoriumsRoutes(service: AuditoriumsService) {
             try {
                 service.deleteAuditorium(id)
                 call.respond(HttpStatusCode.NoContent)
-            } catch (e: NoSuchElementException) {
+            } catch (_: NoSuchElementException) {
                 call.respond(HttpStatusCode.NotFound)
             }
         }
