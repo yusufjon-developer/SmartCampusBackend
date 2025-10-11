@@ -29,6 +29,14 @@ fun Route.groupsRoutes(service: GroupsService) {
             else call.respond(HttpStatusCode.OK, item)
         }
 
+        getWithAccess("{id}/students", Permissions.GROUPS_READ) {
+            val id = call.parameters["id"]?.toIntOrNull()
+                ?: run { call.respond(HttpStatusCode.BadRequest); return@getWithAccess }
+            val result = service.listStudentsInGroup(id)
+            if (result == null) call.respond(HttpStatusCode.NotFound)
+            else call.respond(HttpStatusCode.OK, result)
+        }
+
         postWithAccess(null, Permissions.GROUPS_CREATE) {
             val req = call.receive<GroupCreateRequest>()
             val created = service.createGroup(req)

@@ -3,10 +3,12 @@ package com.smartcampus.data.dao
 import com.smartcampus.data.database.smartCampus.SmartCampusDb
 import com.smartcampus.data.database.smartCampus.entities.GroupsTable
 import com.smartcampus.data.database.smartCampus.entities.SpecialitiesTable
+import com.smartcampus.data.database.smartCampus.entities.StudentsTable
 import com.smartcampus.domain.models.GroupCreateRequest
 import com.smartcampus.domain.models.GroupDto
 import com.smartcampus.domain.models.GroupUpdateRequest
 import com.smartcampus.domain.models.SpecialityDto
+import com.smartcampus.domain.models.StudentListItemDto
 import com.smartcampus.domain.models.common.PageRequestParams
 import com.smartcampus.domain.models.common.PaginatedResult
 import org.jetbrains.exposed.v1.core.Column
@@ -47,6 +49,23 @@ class GroupsDao(private val db: SmartCampusDb) {
         return GroupDto(id = gId, name = gName, course = gCourse, speciality = speciality)
     }
 
+    private fun ResultRow.toStudentListItemDto(): StudentListItemDto {
+        val sId = this[StudentsTable.id].value
+        val surname = this[StudentsTable.surname]
+        val name = this[StudentsTable.name]
+        val lastname = this[StudentsTable.lastname]
+        val birthday = this[StudentsTable.birthday]?.toString()
+        val phoneNumber = this[StudentsTable.phoneNumber]
+        val gId = this[GroupsTable.id].value
+        val gName = this[GroupsTable.name]
+        val course = this[GroupsTable.course]
+        val specId = this[GroupsTable.specialityId]?.value
+        val specName = this[SpecialitiesTable.name]
+        val speciality = specId?.let { SpecialityDto(it, specName) }
+        val group = GroupDto(gId, gName, course, speciality)
+        return StudentListItemDto(sId, surname, name, lastname, birthday, group, phoneNumber)
+    }
+
     suspend fun listGroups(params: PageRequestParams): PaginatedResult<GroupDto> = db.query {
         val baseQuery = GroupsTable
             .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
@@ -69,6 +88,19 @@ class GroupsDao(private val db: SmartCampusDb) {
         row.toGroupDto()
     }
 
+    suspend fun listStudentsInGroup(groupId: Int): List<StudentListItemDto>? = db.query {
+        val groupExists = GroupsTable.selectAll().where { GroupsTable.id eq groupId }.count() > 0
+        if (!groupExists) return@query null
+
+        val baseQuery = StudentsTable
+            .leftJoin(GroupsTable, { StudentsTable.groupId }, { GroupsTable.id })
+            .leftJoin(SpecialitiesTable, { GroupsTable.specialityId }, { SpecialitiesTable.id })
+            .select(StudentsTable.columns + GroupsTable.columns + SpecialitiesTable.columns)
+            .where { StudentsTable.groupId eq groupId }
+
+        baseQuery.map { it.toStudentListItemDto() }
+    }
+
     suspend fun createGroup(req: GroupCreateRequest): GroupDto = db.query {
         val newId = GroupsTable.insertAndGetId {
             it[name] = req.name
@@ -84,12 +116,11 @@ class GroupsDao(private val db: SmartCampusDb) {
     }
 
     suspend fun updateGroup(id: Int, req: GroupUpdateRequest): GroupDto? = db.query {
-        val exists = GroupsTable.selectAll().where { GroupsTable.id eq id }.singleOrNull() ?: return@query null
+        GroupsTable.selectAll().where { GroupsTable.id eq id }.singleOrNull() ?: return@query null
 
         GroupsTable.update({ GroupsTable.id eq id }) {
             req.name?.let { v -> it[GroupsTable.name] = v }
             if (req.specId != null) it[GroupsTable.specialityId] = EntityID(req.specId, SpecialitiesTable)
-            if (req.specId == null && req.specId != exists[GroupsTable.specialityId]?.value) { /* ignore - keep as-is */ }
             req.course?.let { v -> it[GroupsTable.course] = v }
         }
 
